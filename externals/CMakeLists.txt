@@ -18,7 +18,7 @@ add_subdirectory(dynarmic)
 add_subdirectory(fmt)
 
 # getopt
-if (MSVC)
+if (WIN_CREATE_INSTALLER OR MSVC)
     add_subdirectory(getopt)
 endif()
 
@@ -64,3 +64,4 @@ if (ENABLE_WEB_SERVICE)
     add_library(json-headers INTERFACE)
     target_include_directories(json-headers INTERFACE ./json/src)
 endif()
+
