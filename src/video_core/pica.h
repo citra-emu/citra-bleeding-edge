@@ -1128,7 +1128,7 @@ struct Regs {
     // Number of vertices to render
     u32 num_vertices;
 
-    INSERT_PADDING_WORDS(0x1);
+    BitField<0, 2, u32> using_geometry_shader;
 
     // The index of the first vertex to render
     u32 vertex_offset;
@@ -1176,7 +1176,11 @@ struct Regs {
         }
     } command_buffer;
 
-    INSERT_PADDING_WORDS(0x07);
+    INSERT_PADDING_WORDS(0x06);
+
+    enum class VSComMode : u32 { Shared = 0, Exclusive = 1 };
+
+    VSComMode vs_com_mode;
 
     enum class GPUMode : u32 {
         Drawing = 0,
@@ -1185,7 +1189,17 @@ struct Regs {
 
     GPUMode gpu_mode;
 
-    INSERT_PADDING_WORDS(0x18);
+    INSERT_PADDING_WORDS(0x4);
+
+    BitField<0, 4, u32> vs_outmap_total1;
+
+    INSERT_PADDING_WORDS(0x6);
+
+    BitField<0, 4, u32> vs_outmap_total2;
+
+    BitField<0, 4, u32> gsh_misc0;
+
+    INSERT_PADDING_WORDS(0xB);
 
     enum class TriangleTopology : u32 {
         List = 0,
@@ -1194,7 +1208,10 @@ struct Regs {
         Shader = 3, // Programmable setup unit implemented in a geometry shader
     };
 
-    BitField<8, 2, TriangleTopology> triangle_topology;
+    union {
+        BitField<0, 4, u32> vs_outmap_count;
+        BitField<8, 2, TriangleTopology> triangle_topology;
+    };
 
     u32 restart_primitive;
 
@@ -1213,8 +1230,10 @@ struct Regs {
         INSERT_PADDING_WORDS(0x4);
 
         union {
-            // Number of input attributes to shader unit - 1
-            BitField<0, 4, u32> num_input_attributes;
+            BitField<0, 4, u32>
+                num_input_attributes; // Number of input attributes to shader unit - 1
+            BitField<8, 4, u32> use_subdivision;
+            BitField<24, 8, u32> use_geometry_shader;
         };
 
         // Offset to shader program entry point (in words)
@@ -1267,6 +1286,8 @@ struct Regs {
             }
 
             union {
+                u32 setup;
+
                 // Index of the next uniform to write to
                 // TODO: ctrulib uses 8 bits for this, however that seems to yield lots of invalid
                 // indices
@@ -1391,7 +1412,11 @@ ASSERT_REG_POSITION(trigger_draw, 0x22e);
 ASSERT_REG_POSITION(trigger_draw_indexed, 0x22f);
 ASSERT_REG_POSITION(vs_default_attributes_setup, 0x232);
 ASSERT_REG_POSITION(command_buffer, 0x238);
+ASSERT_REG_POSITION(vs_com_mode, 0x244);
 ASSERT_REG_POSITION(gpu_mode, 0x245);
+ASSERT_REG_POSITION(vs_outmap_total1, 0x24A);
+ASSERT_REG_POSITION(vs_outmap_total2, 0x251);
+ASSERT_REG_POSITION(gsh_misc0, 0x252);
 ASSERT_REG_POSITION(triangle_topology, 0x25e);
 ASSERT_REG_POSITION(restart_primitive, 0x25f);
 ASSERT_REG_POSITION(gs, 0x280);

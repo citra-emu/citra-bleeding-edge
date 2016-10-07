@@ -44,9 +44,9 @@ void RunInterpreter(const ShaderSetup& setup, UnitState<Debug>& state, unsigned 
 
     u32 program_counter = offset;
 
-    const auto& uniforms = g_state.vs.uniforms;
-    const auto& swizzle_data = g_state.vs.swizzle_data;
-    const auto& program_code = g_state.vs.program_code;
+    const auto& uniforms = setup.uniforms;
+    const auto& swizzle_data = setup.swizzle_data;
+    const auto& program_code = setup.program_code;
 
     // Placeholder for invalid inputs
     static float24 dummy_vec4_float24[4];
@@ -637,6 +637,16 @@ void RunInterpreter(const ShaderSetup& setup, UnitState<Debug>& state, unsigned 
                 call(state, program_counter + 1,
                      instr.flow_control.dest_offset - program_counter + 1,
                      instr.flow_control.dest_offset + 1, loop_param.x, loop_param.z);
+                break;
+            }
+
+            case OpCode::Id::EMIT: {
+                Shader::HandleEMIT(state);
+                break;
+            }
+
+            case OpCode::Id::SETEMIT: {
+                state.emit_params.raw = program_code[program_counter];
                 break;
             }
 
