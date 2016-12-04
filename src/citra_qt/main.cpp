@@ -629,6 +629,7 @@ int main(int argc, char* argv[]) {
     // Init settings params
     QCoreApplication::setOrganizationName("Citra team");
     QCoreApplication::setApplicationName("Citra");
+    QCoreApplication::addLibraryPath("./");
 
     QApplication::setAttribute(Qt::AA_X11InitThreads);
     QApplication app(argc, argv);

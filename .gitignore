@@ -4,6 +4,7 @@ doc-build/
 
 # Generated source files
 src/common/scm_rev.cpp
+src/updater/tag_name.cpp
 
 # Project/editor files
 *.swp
@@ -23,4 +24,3 @@ src/common/scm_rev.cpp
 
 # Windows global filetypes
 Thumbs.db
-
