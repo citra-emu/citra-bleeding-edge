@@ -36,6 +36,8 @@ QVariant BreakPointModel::data(const QModelIndex& index, int role) const {
                 {Pica::DebugContext::Event::IncomingPrimitiveBatch, tr("Incoming primitive batch")},
                 {Pica::DebugContext::Event::FinishedPrimitiveBatch, tr("Finished primitive batch")},
                 {Pica::DebugContext::Event::VertexShaderInvocation, tr("Vertex shader invocation")},
+                {Pica::DebugContext::Event::GeometryShaderInvocation,
+                 tr("Geometry shader invocation")},
                 {Pica::DebugContext::Event::IncomingDisplayTransfer,
                  tr("Incoming display transfer")},
                 {Pica::DebugContext::Event::GSPCommandProcessed, tr("GSP command processed")},
