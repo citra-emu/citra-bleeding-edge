@@ -55,8 +55,12 @@ void Config::ReadValues() {
     qt_config->endGroup();
 
     qt_config->beginGroup("Layout");
-    Settings::values.layout_option =
-        static_cast<Settings::LayoutOption>(qt_config->value("layout_option").toInt());
+    int layout_check = qt_config->value("layout_option").toInt();
+    if (layout_check < 0 || layout_check > 2) {
+        LOG_ERROR(Config, "Invalid Layout Option! Setting to default.");
+        layout_check = 0;
+    }
+    Settings::values.layout_option = static_cast<Settings::LayoutOption>(layout_check);
     Settings::values.swap_screen = qt_config->value("swap_screen", false).toBool();
     qt_config->endGroup();
 
@@ -72,7 +76,12 @@ void Config::ReadValues() {
 
     qt_config->beginGroup("System");
     Settings::values.is_new_3ds = qt_config->value("is_new_3ds", false).toBool();
-    Settings::values.region_value = qt_config->value("region_value", 1).toInt();
+    int region_check = qt_config->value("region_value", 1).toInt();
+    if (region_check < -1 || region_check > 6) {
+        LOG_ERROR(Config, "Region Value out of bounds! Setting to auto-select.");
+        region_check = -1;
+    }
+    Settings::values.region_value = region_check;
     qt_config->endGroup();
 
     qt_config->beginGroup("Miscellaneous");
