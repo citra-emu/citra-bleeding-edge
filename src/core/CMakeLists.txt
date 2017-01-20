@@ -213,6 +213,7 @@ set(HEADERS
             frontend/camera/factory.h
             frontend/camera/interface.h
             frontend/emu_window.h
+            frontend/input.h
             frontend/key_map.h
             frontend/motion_emu.h
             gdbstub/gdbstub.h
