@@ -301,5 +301,8 @@ void Init();
 
 /// Shutdown HID service
 void Shutdown();
+
+/// Reload input devices. Used when input configuration changed
+void ReloadInputDevices();
 }
 }
