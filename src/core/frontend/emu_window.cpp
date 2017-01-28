@@ -7,32 +7,8 @@
 #include "common/assert.h"
 #include "common/profiler_reporting.h"
 #include "core/frontend/emu_window.h"
-#include "core/frontend/key_map.h"
+#include "core/settings.h"
 #include "video_core/video_core.h"
-
-void EmuWindow::ButtonPressed(Service::HID::PadState pad) {
-    pad_state.hex |= pad.hex;
-}
-
-void EmuWindow::ButtonReleased(Service::HID::PadState pad) {
-    pad_state.hex &= ~pad.hex;
-}
-
-void EmuWindow::CirclePadUpdated(float x, float y) {
-    constexpr int MAX_CIRCLEPAD_POS = 0x9C; // Max value for a circle pad position
-
-    // Make sure the coordinates are in the unit circle,
-    // otherwise normalize it.
-    float r = x * x + y * y;
-    if (r > 1) {
-        r = std::sqrt(r);
-        x /= r;
-        y /= r;
-    }
-
-    circle_pad_x = static_cast<s16>(x * MAX_CIRCLEPAD_POS);
-    circle_pad_y = static_cast<s16>(y * MAX_CIRCLEPAD_POS);
-}
 
 /**
  * Check if the given x/y coordinates are within the touchpad specified by the framebuffer layout
@@ -70,14 +46,12 @@ void EmuWindow::TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y) {
               (framebuffer_layout.bottom_screen.bottom - framebuffer_layout.bottom_screen.top);
 
     touch_pressed = true;
-    pad_state.touch.Assign(1);
 }
 
 void EmuWindow::TouchReleased() {
     touch_pressed = false;
     touch_x = 0;
     touch_y = 0;
-    pad_state.touch.Assign(0);
 }
 
 void EmuWindow::TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y) {
