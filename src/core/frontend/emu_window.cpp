@@ -117,6 +117,9 @@ void EmuWindow::GyroscopeChanged(float x, float y, float z) {
 void EmuWindow::UpdateCurrentFramebufferLayout(unsigned width, unsigned height) {
     Layout::FramebufferLayout layout;
     switch (Settings::values.layout_option) {
+    case Settings::LayoutOption::Custom:
+        layout = Layout::CustomFrameLayout(width, height);
+        break;
     case Settings::LayoutOption::SingleScreen:
         layout = Layout::SingleFrameLayout(width, height, Settings::values.swap_screen);
         break;
