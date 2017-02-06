@@ -466,9 +466,14 @@ void GMainWindow::OnGameListOpenSaveFolder(u64 program_id) {
 }
 
 void GMainWindow::OnMenuLoadFile() {
-    QString filename =
-        QFileDialog::getOpenFileName(this, tr("Load File"), UISettings::values.roms_path,
-                                     tr("3DS executable (*.3ds *.3dsx *.elf *.axf *.cci *.cxi)"));
+    std::string extensions;
+    for (const auto& piece : UISettings::allowed_file_extensions)
+        extensions += "*" + piece + " ";
+
+    std::string file_filter = "3DS executable (" + extensions + ")";
+
+    QString filename = QFileDialog::getOpenFileName(
+        this, tr("Load File"), UISettings::values.roms_path, tr(file_filter.c_str()));
     if (!filename.isEmpty()) {
         UISettings::values.roms_path = QFileInfo(filename).path();
 
