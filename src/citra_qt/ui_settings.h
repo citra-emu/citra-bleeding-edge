@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <unordered_set>
 #include <vector>
 #include <QByteArray>
 #include <QString>
@@ -42,4 +43,6 @@ struct Values {
 };
 
 extern Values values;
+
+extern const std::unordered_set<std::string> allowed_file_extensions;
 }
