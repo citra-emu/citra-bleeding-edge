@@ -1,3 +1,25 @@
+# lemonbot merge log
+
+Scroll down for the original README.md!
+
+======
+
+|   PR | Ref                  | Commit                                     | Author    | Status   |
+|-----:|:---------------------|:-------------------------------------------|:----------|:---------|
+|   19 | pipe3                | `8f51d9522c670158b9517df3af236f24b8c6c31f` | MerryMage | Merged   |
+|   17 | bleeding-edge-base   | `eb3b9571f434b00daeea7d88eb0ed7428d4747e9` | jroweboy  | Merged   |
+|    5 | jfr-fix-batch-errors | `4f4326d0cf0f7a5e23057df89acf8f0aafa19f41` | jroweboy  | Merged   |
+| 2549 | compression-check    | `80bffd568a896c5b2bffb11e9a4964233bacd21d` | yuriks    | Merged   |
+| 2533 | apt_ipchelper        | `9a165b8ed3debd4a9ce1803928841b90186dc455` | Lectem    | Merged   |
+| 2497 | input-2              | `b9e330642de87179dce5a4c85307860fda9ccee7` | wwylele   | Merged   |
+| 2421 | timers               | `ec15116a15910116331d3ef5b8132679c32a27d6` | Subv      | Failed   |
+| 2406 | session_disconnect   | `6810ba2a5fd9ac89017b64a6a886ede4f4e6d7f1` | Subv      | Merged   |
+| 2402 | tired-of-this        | `f861d4217faaebd72bc842f36150c4dd9f5d93d1` | Kloen     | Merged   |
+
+End of merge log. You can find the original README.md below the break.
+
+======
+
 **BEFORE FILING AN ISSUE, READ THE RELEVANT SECTION IN THE [CONTRIBUTING](https://github.com/citra-emu/citra/blob/master/CONTRIBUTING.md#reporting-issues) FILE!!!**
 
 Citra Emulator
