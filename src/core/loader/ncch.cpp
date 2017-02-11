@@ -280,6 +280,13 @@ ResultStatus AppLoader_NCCH::LoadExeFS() {
     LOG_INFO(Loader, "Name:                        %s", exheader_header.codeset_info.name);
     LOG_INFO(Loader, "Program ID:                  %016llX", ncch_header.program_id);
     LOG_DEBUG(Loader, "Code compressed:             %s", is_compressed ? "yes" : "no");
+    if (!is_compressed) {
+        LOG_WARNING(Loader,
+                    "Code section is not compressed. This is very unusual and might be handled "
+                    "incorrectly by Citra.");
+        LOG_WARNING(Loader, "Forcing compression on...");
+        is_compressed = true;
+    }
     LOG_DEBUG(Loader, "Entry point:                 0x%08X", entry_point);
     LOG_DEBUG(Loader, "Code size:                   0x%08X", code_size);
     LOG_DEBUG(Loader, "Stack size:                  0x%08X", stack_size);
