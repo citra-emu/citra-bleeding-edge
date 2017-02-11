@@ -7,4 +7,7 @@
 namespace UISettings {
 
 Values values = {};
+
+const std::unordered_set<std::string> allowed_file_extensions = {".3ds", ".3dsx", ".elf",
+                                                                 ".axf", ".cci",  ".cxi"};
 }
