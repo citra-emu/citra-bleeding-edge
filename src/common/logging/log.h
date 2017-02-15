@@ -88,6 +88,7 @@ enum class Class : ClassType {
     Audio_DSP,         ///< The HLE implementation of the DSP
     Audio_Sink,        ///< Emulator audio output backend
     Loader,            ///< ROM loader
+    Input,             ///< Input emulation
     Count              ///< Total number of logging classes
 };
 
