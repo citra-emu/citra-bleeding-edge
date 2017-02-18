@@ -68,8 +68,20 @@ bg_green =
 
 [Layout]
 # Layout for the screen inside the render window.
-# 0 (default): Default Top Bottom Screen, 1: Single Screen Only, 2: Large Screen Small Screen
+# 0 (default): Default Top Bottom Screen, 1: Single Screen Only, 2: Large Screen Small Screen,
+# 3: Custom (using the settings below)
 layout_option =
+
+# Screen placement when using Custom layout option
+# 0x, 0y is the top left corner of the render window.
+custom_top_left =
+custom_top_top =
+custom_top_right =
+custom_top_bottom =
+custom_bottom_left =
+custom_bottom_top =
+custom_bottom_right =
+custom_bottom_bottom =
 
 #Whether to toggle frame limiter on or off.
 # 0: Off , 1  (default): On
