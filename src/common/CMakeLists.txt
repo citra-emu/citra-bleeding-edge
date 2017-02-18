@@ -12,6 +12,7 @@ set(SRCS
             memory_util.cpp
             microprofile.cpp
             misc.cpp
+            param_package.cpp
             profiler.cpp
             scm_rev.cpp
             string_util.cpp
@@ -44,6 +45,7 @@ set(HEADERS
             memory_util.h
             microprofile.h
             microprofileui.h
+            param_package.h
             platform.h
             profiler_reporting.h
             quaternion.h
