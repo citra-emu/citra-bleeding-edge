@@ -5,6 +5,7 @@
 #pragma once
 
 #include <atomic>
+#include <QFileSystemWatcher>
 #include <QImage>
 #include <QRunnable>
 #include <QStandardItem>
