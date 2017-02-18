@@ -20,6 +20,9 @@ public:
 
     void applyConfiguration();
 
+public slots:
+    void layoutComboboxChanged(int index);
+
 private:
     void setConfiguration();
 
