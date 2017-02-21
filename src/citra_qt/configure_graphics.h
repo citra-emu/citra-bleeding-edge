@@ -20,6 +20,9 @@ public:
 
     void applyConfiguration();
 
+public slots:
+    void layoutComboboxChanged(const QString& text);
+
 private:
     void setConfiguration();
 
