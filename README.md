@@ -1,3 +1,26 @@
+# lemonbot merge log
+
+Scroll down for the original README.md!
+
+======
+
+|   PR | Ref                  | Commit                                     | Author    | Status   |
+|-----:|:---------------------|:-------------------------------------------|:----------|:---------|
+|   31 | jit-experiments      | `48ff91394f38021c69cad3b42aec44166f37c821` | MerryMage | Merged   |
+|   19 | pipe3                | `8f51d9522c670158b9517df3af236f24b8c6c31f` | MerryMage | Merged   |
+|   17 | bleeding-edge-base   | `eb3b9571f434b00daeea7d88eb0ed7428d4747e9` | jroweboy  | Merged   |
+|    5 | jfr-fix-batch-errors | `4f4326d0cf0f7a5e23057df89acf8f0aafa19f41` | jroweboy  | Merged   |
+| 2569 | wrap-unwrap          | `2bbee581fc986b1ebcfc6bb0e339a0f2f0d950ea` | wwylele   | Merged   |
+| 2555 | reloadgamedir        | `5b226fd5457142df44e2325c46417c4919ed472f` | jroweboy  | Merged   |
+| 2533 | apt_ipchelper        | `b2555f0508e1e296fed082acaee49468a6858583` | Lectem    | Merged   |
+| 2512 | custom-layout        | `23c1319dfc75090c70211f06c75014cac0716324` | SonofUgly | Merged   |
+| 2497 | input-2              | `e15af6d40ed6c230795483a30712384fe43bac2e` | wwylele   | Merged   |
+| 2406 | session_disconnect   | `6810ba2a5fd9ac89017b64a6a886ede4f4e6d7f1` | Subv      | Merged   |
+
+End of merge log. You can find the original README.md below the break.
+
+======
+
 **BEFORE FILING AN ISSUE, READ THE RELEVANT SECTION IN THE [CONTRIBUTING](https://github.com/citra-emu/citra/blob/master/CONTRIBUTING.md#reporting-issues) FILE!!!**
 
 Citra Emulator
