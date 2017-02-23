@@ -14,9 +14,23 @@ ConfigureGraphics::ConfigureGraphics(QWidget* parent)
     this->setConfiguration();
 
     ui->toggle_vsync->setEnabled(!Core::System::GetInstance().IsPoweredOn());
+
+    connect(ui->layout_combobox, SIGNAL(currentIndexChanged(int)), this,
+            SLOT(layoutComboboxChanged(int)));
+    layoutComboboxChanged(ui->layout_combobox->currentIndex());
 }
 
 ConfigureGraphics::~ConfigureGraphics() {}
+
+void ConfigureGraphics::layoutComboboxChanged(int index) {
+    if (index == 3) { // Custom
+        ui->custom_groupBox->setEnabled(true);
+        ui->swap_screen->setEnabled(false);
+    } else {
+        ui->custom_groupBox->setEnabled(false);
+        ui->swap_screen->setEnabled(true);
+    }
+}
 
 enum class Resolution : int {
     Auto,
@@ -97,6 +111,14 @@ void ConfigureGraphics::setConfiguration() {
     ui->toggle_framelimit->setChecked(Settings::values.toggle_framelimit);
     ui->layout_combobox->setCurrentIndex(static_cast<int>(Settings::values.layout_option));
     ui->swap_screen->setChecked(Settings::values.swap_screen);
+    ui->custom_top_left_spinbox->setValue(Settings::values.custom_top_left);
+    ui->custom_top_top_spinbox->setValue(Settings::values.custom_top_top);
+    ui->custom_top_right_spinbox->setValue(Settings::values.custom_top_right);
+    ui->custom_top_bottom_spinbox->setValue(Settings::values.custom_top_bottom);
+    ui->custom_bottom_left_spinbox->setValue(Settings::values.custom_bottom_left);
+    ui->custom_bottom_top_spinbox->setValue(Settings::values.custom_bottom_top);
+    ui->custom_bottom_right_spinbox->setValue(Settings::values.custom_bottom_right);
+    ui->custom_bottom_bottom_spinbox->setValue(Settings::values.custom_bottom_bottom);
 }
 
 void ConfigureGraphics::applyConfiguration() {
@@ -109,5 +131,13 @@ void ConfigureGraphics::applyConfiguration() {
     Settings::values.layout_option =
         static_cast<Settings::LayoutOption>(ui->layout_combobox->currentIndex());
     Settings::values.swap_screen = ui->swap_screen->isChecked();
+    Settings::values.custom_top_left = ui->custom_top_left_spinbox->value();
+    Settings::values.custom_top_top = ui->custom_top_top_spinbox->value();
+    Settings::values.custom_top_right = ui->custom_top_right_spinbox->value();
+    Settings::values.custom_top_bottom = ui->custom_top_bottom_spinbox->value();
+    Settings::values.custom_bottom_left = ui->custom_bottom_left_spinbox->value();
+    Settings::values.custom_bottom_top = ui->custom_bottom_top_spinbox->value();
+    Settings::values.custom_bottom_right = ui->custom_bottom_right_spinbox->value();
+    Settings::values.custom_bottom_bottom = ui->custom_bottom_bottom_spinbox->value();
     Settings::Apply();
 }
