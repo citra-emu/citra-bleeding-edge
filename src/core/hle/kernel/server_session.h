@@ -16,6 +16,15 @@
 namespace Kernel {
 
 class ClientSession;
+class ClientPort;
+class ServerSession;
+
+class Session final {
+public:
+    ClientSession* client;
+    ServerSession* server;
+    ClientPort* port;
+};
 
 /**
  * Kernel object representing the server endpoint of an IPC session. Sessions are the basic CTR-OS
@@ -49,7 +58,8 @@ public:
      */
     static SessionPair CreateSessionPair(
         const std::string& name = "Unknown",
-        std::shared_ptr<Service::SessionRequestHandler> hle_handler = nullptr);
+        std::shared_ptr<Service::SessionRequestHandler> hle_handler = nullptr,
+        ClientPort* client_port = nullptr);
 
     /**
      * Handle a sync request from the emulated application.
@@ -63,6 +73,7 @@ public:
 
     std::string name; ///< The name of this session (optional)
     bool signaled;    ///< Whether there's new data available to this ServerSession
+    std::shared_ptr<Session> parent;
     std::shared_ptr<Service::SessionRequestHandler>
         hle_handler; ///< This session's HLE request handler (optional)
 
