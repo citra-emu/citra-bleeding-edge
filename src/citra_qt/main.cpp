@@ -314,7 +314,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
     render_window->MakeCurrent();
 
     if (!gladLoadGL()) {
-        QMessageBox::critical(this, tr("Error while starting Citra!"),
+        QMessageBox::critical(this, tr("Error while initializing OpenGL 3.3 Core!"),
                               tr("Your GPU may not support OpenGL 3.3, or you do not"
                                  "have the latest graphics driver."));
         return false;
@@ -343,7 +343,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
             QMessageBox::critical(
                 this, tr("Error while loading ROM!"),
                 tr("The game that you are trying to load must be decrypted before being used with "
-                   "Citra.<br/><br/>"
+                   "Citra. A real 3DS is required.<br/><br/>"
                    "For more information on dumping and decrypting games, please see the following "
                    "wiki pages: <ul>"
                    "<li><a href='https://citra-emu.org/wiki/Dumping-Game-Cartridges/'>Dumping Game "
@@ -358,8 +358,8 @@ bool GMainWindow::LoadROM(const QString& filename) {
                                   tr("The ROM format is not supported."));
             break;
 
-        case Core::System::ResultStatus::ErrorOpenGL:
-            QMessageBox::critical(this, tr("Error while loading OpenGL!"),
+        case Core::System::ResultStatus::ErrorVideoCore:
+            QMessageBox::critical(this, tr("Error while initializing OpenGL 3.3 Core!"),
                                   tr("Your GPU may not support OpenGL 3.3, or you do not "
                                      "have the latest graphics driver."));
             break;
@@ -688,13 +688,13 @@ void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
             ".");
         break;
 
-    case Core::System::ResultStatus::ErrorUnknown:
+    default:
         QMessageBox::critical(
             this, "Fatal Error",
-            "Citra has encountered a fatal error, please see the log for more details.");
-        break;
-
-    default:
+            "Citra has encountered a fatal error, please see the log for more details."
+            "For more information on accessing the log, please see the following page: "
+            "<a href='https://community.citra-emu.org/t/how-to-upload-the-log-file/296'>How to "
+            "Upload the Log File</a>.");
         break;
     }
 }
@@ -703,9 +703,10 @@ bool GMainWindow::ConfirmClose() {
     if (emu_thread == nullptr || !UISettings::values.confirm_before_closing)
         return true;
 
-    return QMessageBox::question(this, tr("Citra"), tr("Are you sure you want to close Citra?"),
-                                 QMessageBox::Yes | QMessageBox::No,
-                                 QMessageBox::No) != QMessageBox::No;
+    auto answer =
+        QMessageBox::question(this, tr("Citra"), tr("Are you sure you want to close Citra?"),
+                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    return answer != QMessageBox::No;
 }
 
 void GMainWindow::closeEvent(QCloseEvent* event) {

@@ -42,7 +42,6 @@ public:
         ErrorSystemFiles,               ///< Error in finding system files
         ErrorSharedFont,                ///< Error in finding shared font
         ErrorVideoCore,                 ///< Error in the video core
-        ErrorOpenGL,                    ///< Error when initializing OpenGL
         ErrorUnknown                    ///< Any other error
     };
 
