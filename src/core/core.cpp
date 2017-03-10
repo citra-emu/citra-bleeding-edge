@@ -29,6 +29,7 @@ namespace Core {
 /*static*/ System System::s_instance;
 
 System::ResultStatus System::RunLoop(int tight_loop) {
+    this->status = ResultStatus::Success;
     if (!cpu_core) {
         return ResultStatus::ErrorNotInitialized;
     }

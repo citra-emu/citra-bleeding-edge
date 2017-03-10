@@ -656,9 +656,8 @@ void GMainWindow::UpdateStatusBar() {
 }
 
 void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
-    // Waiting for the dialog to be closed before shutting down causes a segfault, maybe because of
-    // the profiler
-    ShutdownGame();
+    if (emu_thread != nullptr)
+        ShutdownGame();
     switch (result) {
     case Core::System::ResultStatus::ErrorSystemFiles:
         QMessageBox::critical(

@@ -267,9 +267,8 @@ ResultVal<ArchiveHandle> OpenArchive(ArchiveIdCode id_code, FileSys::Path& archi
 
     auto itr = id_code_map.find(id_code);
     if (itr == id_code_map.end())
-        return ResultCode(ErrorDescription::FS_NotFound, ErrorModule::FS,
-                                                    ErrorSummary::NotFound,
-                                                    ErrorLevel::Status);
+        return ResultCode(ErrorDescription::FS_NotFound, ErrorModule::FS, ErrorSummary::NotFound,
+                          ErrorLevel::Status);
 
     CASCADE_RESULT(std::unique_ptr<ArchiveBackend> res, itr->second->Open(archive_path));
 
