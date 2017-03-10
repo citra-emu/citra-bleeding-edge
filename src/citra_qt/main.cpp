@@ -360,9 +360,16 @@ bool GMainWindow::LoadROM(const QString& filename) {
             break;
 
         case Core::System::ResultStatus::ErrorVideoCore:
-            QMessageBox::critical(this, tr("Error while initializing OpenGL 3.3 Core!"),
-                                  tr("Your GPU may not support OpenGL 3.3, or you do not "
-                                     "have the latest graphics driver."));
+            QMessageBox::critical(
+                this, tr("An error occured in the video core."),
+                tr("Citra has encountered an error while running the video core,  please see the "
+                   "log for more details."
+                   "For more information on accessing the log, please see the following page: "
+                   "<a href='https://community.citra-emu.org/t/how-to-upload-the-log-file/296'>How "
+                   "to "
+                   "Upload the Log File</a>."
+                   "Ensure that you have the latest graphics drivers for your GPU."));
+
             break;
 
         default:
@@ -690,7 +697,7 @@ void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
     default:
         QMessageBox::critical(
             this, "Fatal Error",
-            "Citra has encountered a fatal error, please see the log for more details."
+            "Citra has encountered a fatal error, please see the log for more details. "
             "For more information on accessing the log, please see the following page: "
             "<a href='https://community.citra-emu.org/t/how-to-upload-the-log-file/296'>How to "
             "Upload the Log File</a>.");
