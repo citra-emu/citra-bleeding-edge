@@ -8,6 +8,7 @@
 #include "common/logging/log.h"
 #include "common/scope_exit.h"
 #include "common/string_util.h"
+#include "core/core.h"
 #include "core/hle/kernel/client_session.h"
 #include "core/hle/result.h"
 #include "core/hle/service/fs/archive.h"
@@ -133,6 +134,9 @@ static void OpenFileDirectly(Service::Interface* self) {
                   static_cast<u32>(archive_id), archive_path.DebugStr().c_str());
         cmd_buff[1] = archive_handle.Code().raw;
         cmd_buff[3] = 0;
+        if (static_cast<FS::ArchiveIdCode>(archive_id) == ArchiveIdCode::NCCH) {
+            Core::System::GetInstance().SetStatus(Core::System::ResultStatus::ErrorSystemFiles);
+        }
         return;
     }
     SCOPE_EXIT({ CloseArchive(*archive_handle); });

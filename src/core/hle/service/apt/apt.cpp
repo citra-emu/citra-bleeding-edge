@@ -5,6 +5,7 @@
 #include "common/common_paths.h"
 #include "common/file_util.h"
 #include "common/logging/log.h"
+#include "core/core.h"
 #include "core/hle/applets/applet.h"
 #include "core/hle/kernel/event.h"
 #include "core/hle/kernel/mutex.h"
@@ -76,6 +77,7 @@ void GetSharedFont(Service::Interface* self) {
         LOG_ERROR(Service_APT, "shared font file missing - go dump it from your 3ds");
         cmd_buff[0] = IPC::MakeHeader(0x44, 2, 2);
         cmd_buff[1] = -1; // TODO: Find the right error code
+        Core::System::GetInstance().SetStatus(Core::System::ResultStatus::ErrorSharedFont);
         return;
     }
 

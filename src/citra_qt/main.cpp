@@ -314,9 +314,8 @@ bool GMainWindow::LoadROM(const QString& filename) {
     render_window->MakeCurrent();
 
     if (!gladLoadGL()) {
-        QMessageBox::critical(this, tr("Error while starting Citra!"),
-                              tr("Failed to initialize the video core!\n\n"
-                                 "Please ensure that your GPU supports OpenGL 3.3 and that you "
+        QMessageBox::critical(this, tr("Error while initializing OpenGL 3.3 Core!"),
+                              tr("Your GPU may not support OpenGL 3.3, or you do not"
                                  "have the latest graphics driver."));
         return false;
     }
@@ -341,18 +340,17 @@ bool GMainWindow::LoadROM(const QString& filename) {
             break;
 
         case Core::System::ResultStatus::ErrorLoader_ErrorEncrypted: {
-            // Build the MessageBox ourselves to have clickable link
-            QMessageBox popup_error;
-            popup_error.setTextFormat(Qt::RichText);
-            popup_error.setWindowTitle(tr("Error while loading ROM!"));
-            popup_error.setText(
+            QMessageBox::critical(
+                this, tr("Error while loading ROM!"),
                 tr("The game that you are trying to load must be decrypted before being used with "
-                   "Citra.<br/><br/>"
-                   "For more information on dumping and decrypting games, please see: <a "
-                   "href='https://citra-emu.org/wiki/Dumping-Game-Cartridges'>https://"
-                   "citra-emu.org/wiki/Dumping-Game-Cartridges</a>"));
-            popup_error.setIcon(QMessageBox::Critical);
-            popup_error.exec();
+                   "Citra. A real 3DS is required.<br/><br/>"
+                   "For more information on dumping and decrypting games, please see the following "
+                   "wiki pages: <ul>"
+                   "<li><a href='https://citra-emu.org/wiki/Dumping-Game-Cartridges/'>Dumping Game "
+                   "Cartridges</a></li>"
+                   "<li><a href='https://citra-emu.org/wiki/Dumping-Installed-Titles/'>Dumping "
+                   "Installed Titles</a></li>"
+                   "</ul>"));
             break;
         }
         case Core::System::ResultStatus::ErrorLoader_ErrorInvalidFormat:
@@ -360,8 +358,23 @@ bool GMainWindow::LoadROM(const QString& filename) {
                                   tr("The ROM format is not supported."));
             break;
 
+        case Core::System::ResultStatus::ErrorVideoCore:
+            QMessageBox::critical(
+                this, tr("An error occured in the video core."),
+                tr("Citra has encountered an error while running the video core,  please see the "
+                   "log for more details."
+                   "For more information on accessing the log, please see the following page: "
+                   "<a href='https://community.citra-emu.org/t/how-to-upload-the-log-file/296'>How "
+                   "to "
+                   "Upload the Log File</a>."
+                   "Ensure that you have the latest graphics drivers for your GPU."));
+
+            break;
+
         default:
-            QMessageBox::critical(this, tr("Error while loading ROM!"), tr("Unknown error!"));
+            QMessageBox::critical(
+                this, tr("Error while loading ROM!"),
+                tr("An unknown error occured. Please see the log for more details."));
             break;
         }
         return false;
@@ -562,6 +575,9 @@ void GMainWindow::OnMenuRecentFile() {
 
 void GMainWindow::OnStartGame() {
     emu_thread->SetRunning(true);
+    qRegisterMetaType<Core::System::ResultStatus>("Core::System::ResultStatus");
+    connect(emu_thread.get(), SIGNAL(ErrorThrown(Core::System::ResultStatus)), this,
+            SLOT(OnCoreError(Core::System::ResultStatus)));
 
     ui.action_Start->setEnabled(false);
     ui.action_Start->setText(tr("Continue"));
@@ -644,6 +660,49 @@ void GMainWindow::UpdateStatusBar() {
     emu_speed_label->setVisible(true);
     game_fps_label->setVisible(true);
     emu_frametime_label->setVisible(true);
+}
+
+void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
+    if (emu_thread != nullptr)
+        ShutdownGame();
+    switch (result) {
+    case Core::System::ResultStatus::ErrorSystemFiles:
+        QMessageBox::critical(
+            this, "System Archive Not Found",
+            "Citra was unable to locate the 3DS system archive.<br/><br/>"
+            "The game you are trying to load requires additional files from your 3DS to be dumped "
+            "before playing.<br/><br/>"
+            "For more information on dumping these files, please see the following wiki page: "
+            "<a "
+            "href='https://citra-emu.org/wiki/"
+            "Dumping-System-Archives-and-the-Shared-Fonts-from-a-3DS-Console/'>Dumping System "
+            "Archives and the Shared Fonts from a 3DS Console</a>"
+            ".");
+        break;
+
+    case Core::System::ResultStatus::ErrorSharedFont:
+        QMessageBox::critical(
+            this, "Shared Fonts Not Found",
+            "Citra was unable to locate the 3DS shared fonts.<br/><br/>"
+            "The game you are trying to load requires additional files from your 3DS to be dumped "
+            "before playing.<br/><br/>"
+            "For more information on dumping these files, please see the following wiki page: "
+            "<a "
+            "href='https://citra-emu.org/wiki/"
+            "Dumping-System-Archives-and-the-Shared-Fonts-from-a-3DS-Console/'>Dumping System "
+            "Archives and the Shared Fonts from a 3DS Console</a>"
+            ".");
+        break;
+
+    default:
+        QMessageBox::critical(
+            this, "Fatal Error",
+            "Citra has encountered a fatal error, please see the log for more details. "
+            "For more information on accessing the log, please see the following page: "
+            "<a href='https://community.citra-emu.org/t/how-to-upload-the-log-file/296'>How to "
+            "Upload the Log File</a>.");
+        break;
+    }
 }
 
 bool GMainWindow::ConfirmClose() {
