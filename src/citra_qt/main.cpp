@@ -663,8 +663,6 @@ void GMainWindow::UpdateStatusBar() {
 }
 
 void GMainWindow::OnCoreError(Core::System::ResultStatus result) {
-    if (emu_thread != nullptr)
-        ShutdownGame();
     switch (result) {
     case Core::System::ResultStatus::ErrorSystemFiles:
         QMessageBox::critical(
