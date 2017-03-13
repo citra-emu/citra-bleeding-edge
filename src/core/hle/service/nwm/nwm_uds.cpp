@@ -1,16 +1,48 @@
-// Copyright 2014 Citra Emulator Project
+// Copyright 2017 Citra Emulator Project
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <cstring>
+#include <unordered_map>
+#include <vector>
 #include "common/common_types.h"
 #include "common/logging/log.h"
+#include "core/hle/result.h"
 #include "core/hle/kernel/event.h"
+#include "core/hle/kernel/shared_memory.h"
 #include "core/hle/service/nwm/nwm_uds.h"
+#include "core/memory.h"
 
 namespace Service {
 namespace NWM {
 
-static Kernel::SharedPtr<Kernel::Event> uds_handle_event;
+// Event that is signaled every time the connection status changes.
+static Kernel::SharedPtr<Kernel::Event> connection_status_event;
+
+// Shared memory provided by the application to store the receive buffer.
+// This is not currently used.
+static Kernel::SharedPtr<Kernel::SharedMemory> recv_buffer_memory;
+
+// Connection status of this 3DS.
+static ConnectionStatus connection_status{};
+
+// Node information about the current 3DS.
+// TODO(Subv): Keep an array of all nodes connected to the network,
+// that data has to be retransmitted in every beacon frame.
+static NodeInfo node_info;
+
+// Mapping of bind node ids to their respective events.
+static std::unordered_map<u32, Kernel::SharedPtr<Kernel::Event>> bind_node_events;
+
+// The wifi network channel that the network is currently on.
+// Since we're not actually interacting with physical radio waves, this is just a dummy value.
+static u8 network_channel = DefaultNetworkChannel;
+
+// The identifier of the network kind, this is used to filter away networks that we're not interested in.
+static u32 wlan_comm_id = 0;
+
+// Application data that is sent when broadcasting the beacon frames.
+static std::vector<u8> application_data;
 
 /**
  * NWM_UDS::Shutdown service function
@@ -77,42 +109,155 @@ static void RecvBeaconBroadcastData(Interface* self) {
 /**
  * NWM_UDS::Initialize service function
  *  Inputs:
- *      1 : Unknown
- *   2-11 : Input Structure
- *     12 : Unknown u16
+ *      1 : Shared memory size
+ *   2-11 : Input NodeInfo Structure
+ *     12 : Version
  *     13 : Value 0
- *     14 : Handle
+ *     14 : Shared memory handle
  *  Outputs:
  *      0 : Return header
  *      1 : Result of function, 0 on success, otherwise error code
  *      2 : Value 0
- *      3 : Output handle
+ *      3 : Output event handle
  */
 static void InitializeWithVersion(Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
-    u32 unk1 = cmd_buff[1];
-    u32 unk2 = cmd_buff[12];
-    u32 value = cmd_buff[13];
-    u32 handle = cmd_buff[14];
+    u32 sharedmem_size = cmd_buff[1];
 
-    // Because NWM service is not implemented at all, we stub the Initialize function with an error
-    // code instead of success to prevent games from using the service and from causing more issues.
-    // The error code is from a real 3DS with wifi off, thus believed to be "network disabled".
-    /*
+    // Update the node information with the data the game gave us.
+    memcpy(&node_info, &cmd_buff[2], sizeof(NodeInfo));
+
+    u32 version = cmd_buff[12] & 0xFFFF;
+    u32 sharedmem_handle = cmd_buff[14];
+
+    recv_buffer_memory = Kernel::g_handle_table.Get<Kernel::SharedMemory>(sharedmem_handle);
+
+    // Reset the connection status, it contains all zeros after initialization,
+    // except for the actual status value.
+    connection_status = {};
+    connection_status.status = NotConnected;
+
+    cmd_buff[0] = IPC::MakeHeader(0x1B, 1, 2);
     cmd_buff[1] = RESULT_SUCCESS.raw;
     cmd_buff[2] = 0;
-    cmd_buff[3] = Kernel::g_handle_table.Create(uds_handle_event)
-                      .MoveFrom(); // TODO(purpasmart): Verify if this is a event handle
-    */
-    cmd_buff[0] = IPC::MakeHeader(0x1B, 1, 2);
-    cmd_buff[1] = ResultCode(static_cast<ErrorDescription>(2), ErrorModule::UDS,
-                             ErrorSummary::StatusChanged, ErrorLevel::Status)
-                      .raw;
-    cmd_buff[2] = 0;
-    cmd_buff[3] = 0;
+    cmd_buff[3] = Kernel::g_handle_table.Create(connection_status_event).MoveFrom();
 
-    LOG_WARNING(Service_NWM, "(STUBBED) called unk1=0x%08X, unk2=0x%08X, value=%u, handle=0x%08X",
-                unk1, unk2, value, handle);
+    LOG_DEBUG(Service_NWM, "called sharedmem_size=0x%08X, version=0x%08X, value=%u, handle=0x%08X",
+                sharedmem_size, version, sharedmem_handle);
+}
+
+static void GetConnectionStatus(Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+    memcpy(&cmd_buff[2], &connection_status, sizeof(ConnectionStatus));
+
+    LOG_DEBUG(Service_NWM, "called");
+}
+
+static void Bind(Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    u32 bind_node_id = cmd_buff[1];
+    u32 recv_buffer_size = cmd_buff[2];
+    u8 data_channel = cmd_buff[3] & 0xFF;
+    u16 network_node_id = cmd_buff[4] & 0xFFFF;
+
+    // TODO(Subv): Store the data channel and verify it when receiving data frames.
+
+    LOG_DEBUG(Service_NWM, "called");
+
+    if (data_channel == 0) {
+        cmd_buff[1] = ResultCode(ErrorDescription::NotAuthorized, ErrorModule::UDS,
+                                 ErrorSummary::WrongArgument, ErrorLevel::Usage).raw;
+        return;
+    }
+
+    // Create a new event for this bind node.
+    // TODO(Subv): Signal this event when new data is available for this bind node.
+    auto event = Kernel::Event::Create(Kernel::ResetType::OneShot,
+                                       "NWM::BindNodeEvent" + std::to_string(bind_node_id));
+    bind_node_events[bind_node_id] = event;
+
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+    cmd_buff[2] = 0;
+    cmd_buff[3] = Kernel::g_handle_table.Create(event).MoveFrom();
+}
+
+static void BeginHostingNetwork(Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    u32 passphrase_size = cmd_buff[1];
+    VAddr network_info_address = cmd_buff[3];
+    VAddr passphrase_address = cmd_buff[5];
+
+    // TODO(Subv): Store the passphrase and verify it when attempting a connection.
+
+    LOG_DEBUG(Service_NWM, "called");
+
+    NetworkInfo network_info;
+    Memory::ReadBlock(network_info_address, &network_info, sizeof(NetworkInfo));
+
+    connection_status.status = ConnectedAsHost;
+    connection_status.max_nodes = network_info.max_nodes;
+    wlan_comm_id = network_info.wlan_comm_id;
+
+    // There's currently only one node in the network (the host).
+    connection_status.total_nodes = 1;
+    // The host is always the first node
+    connection_status.network_node_id = 1;
+    node_info.network_node_id = 1;
+    // Set the bit 0 in the nodes bitmask to indicate that node 1 is already taken.
+    connection_status.node_bitmask |= 1;
+
+    // If the game has a preferred channel, use that instead.
+    if (network_info.channel != 0)
+        network_channel = network_info.channel;
+
+    // Clear the pre-existing application data.
+    application_data.clear();
+
+    connection_status_event->Signal();
+
+    // TODO(Subv): Start broadcasting the network, send a beacon frame every 102.4ms.
+
+    LOG_WARNING(Service_NWM, "An UDS network has been created, but broadcasting it is unimplemented.");
+
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+}
+
+static void GetChannel(Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    u8 channel = network_channel;
+
+    if (connection_status.status == NotConnected)
+        channel = 0;
+
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+    cmd_buff[2] = channel;
+
+    LOG_DEBUG(Service_NWM, "called");
+}
+
+static void SetApplicationData(Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    u32 size = cmd_buff[1];
+    VAddr address = cmd_buff[3];
+
+    LOG_DEBUG(Service_NWM, "called");
+
+    if (size > ApplicationDataSize) {
+        cmd_buff[1] = ResultCode(ErrorDescription::TooLarge, ErrorModule::UDS,
+                                 ErrorSummary::WrongArgument, ErrorLevel::Usage).raw;
+        return;
+    }
+
+    application_data.resize(size);
+    Memory::ReadBlock(address, application_data.data(), size);
+
+    cmd_buff[1] = RESULT_SUCCESS.raw;
 }
 
 const Interface::FunctionInfo FunctionTable[] = {
@@ -126,20 +271,20 @@ const Interface::FunctionInfo FunctionTable[] = {
     {0x00080000, nullptr, "DestroyNetwork"},
     {0x00090442, nullptr, "ConnectNetwork (deprecated)"},
     {0x000A0000, nullptr, "DisconnectNetwork"},
-    {0x000B0000, nullptr, "GetConnectionStatus"},
+    {0x000B0000, GetConnectionStatus, "GetConnectionStatus"},
     {0x000D0040, nullptr, "GetNodeInformation"},
     {0x000E0006, nullptr, "DecryptBeaconData (deprecated)"},
     {0x000F0404, RecvBeaconBroadcastData, "RecvBeaconBroadcastData"},
-    {0x00100042, nullptr, "SetApplicationData"},
+    {0x00100042, SetApplicationData, "SetApplicationData"},
     {0x00110040, nullptr, "GetApplicationData"},
-    {0x00120100, nullptr, "Bind"},
+    {0x00120100, Bind, "Bind"},
     {0x00130040, nullptr, "Unbind"},
     {0x001400C0, nullptr, "PullPacket"},
     {0x00150080, nullptr, "SetMaxSendDelay"},
     {0x00170182, nullptr, "SendTo"},
-    {0x001A0000, nullptr, "GetChannel"},
+    {0x001A0000, GetChannel, "GetChannel"},
     {0x001B0302, InitializeWithVersion, "InitializeWithVersion"},
-    {0x001D0044, nullptr, "BeginHostingNetwork"},
+    {0x001D0044, BeginHostingNetwork, "BeginHostingNetwork"},
     {0x001E0084, nullptr, "ConnectToNetwork"},
     {0x001F0006, nullptr, "DecryptBeaconData"},
     {0x00200040, nullptr, "Flush"},
@@ -148,13 +293,19 @@ const Interface::FunctionInfo FunctionTable[] = {
 };
 
 NWM_UDS::NWM_UDS() {
-    uds_handle_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "NWM::uds_handle_event");
+    connection_status_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "NWM::connection_status_event");
 
     Register(FunctionTable);
 }
 
 NWM_UDS::~NWM_UDS() {
-    uds_handle_event = nullptr;
+    application_data.clear();
+    bind_node_events.clear();
+    connection_status_event = nullptr;
+    recv_buffer_memory = nullptr;
+
+    connection_status = {};
+    connection_status.status = NotConnected;
 }
 
 } // namespace NWM
