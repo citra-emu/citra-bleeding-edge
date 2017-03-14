@@ -7,9 +7,9 @@
 #include <vector>
 #include "common/common_types.h"
 #include "common/logging/log.h"
-#include "core/hle/result.h"
 #include "core/hle/kernel/event.h"
 #include "core/hle/kernel/shared_memory.h"
+#include "core/hle/result.h"
 #include "core/hle/service/nwm/nwm_uds.h"
 #include "core/memory.h"
 
@@ -140,7 +140,7 @@ static void InitializeWithVersion(Interface* self) {
     cmd_buff[3] = Kernel::g_handle_table.Create(connection_status_event).MoveFrom();
 
     LOG_DEBUG(Service_NWM, "called sharedmem_size=0x%08X, version=0x%08X, value=%u, handle=0x%08X",
-                sharedmem_size, version, sharedmem_handle);
+              sharedmem_size, version, sharedmem_handle);
 }
 
 static void GetConnectionStatus(Interface* self) {
@@ -166,7 +166,8 @@ static void Bind(Interface* self) {
 
     if (data_channel == 0) {
         cmd_buff[1] = ResultCode(ErrorDescription::NotAuthorized, ErrorModule::UDS,
-                                 ErrorSummary::WrongArgument, ErrorLevel::Usage).raw;
+                                 ErrorSummary::WrongArgument, ErrorLevel::Usage)
+                          .raw;
         return;
     }
 
@@ -213,7 +214,8 @@ static void BeginHostingNetwork(Interface* self) {
 
     // TODO(Subv): Start broadcasting the network, send a beacon frame every 102.4ms.
 
-    LOG_WARNING(Service_NWM, "An UDS network has been created, but broadcasting it is unimplemented.");
+    LOG_WARNING(Service_NWM,
+                "An UDS network has been created, but broadcasting it is unimplemented.");
 
     cmd_buff[1] = RESULT_SUCCESS.raw;
 }
@@ -242,7 +244,8 @@ static void SetApplicationData(Interface* self) {
 
     if (size > ApplicationDataSize) {
         cmd_buff[1] = ResultCode(ErrorDescription::TooLarge, ErrorModule::UDS,
-                                 ErrorSummary::WrongArgument, ErrorLevel::Usage).raw;
+                                 ErrorSummary::WrongArgument, ErrorLevel::Usage)
+                          .raw;
         return;
     }
 
@@ -285,7 +288,8 @@ const Interface::FunctionInfo FunctionTable[] = {
 };
 
 NWM_UDS::NWM_UDS() {
-    connection_status_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "NWM::connection_status_event");
+    connection_status_event =
+        Kernel::Event::Create(Kernel::ResetType::OneShot, "NWM::connection_status_event");
 
     Register(FunctionTable);
 }
