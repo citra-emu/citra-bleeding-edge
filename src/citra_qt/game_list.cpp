@@ -141,7 +141,7 @@ void GameList::LoadInterfaceLayout() {
 }
 
 const QStringList GameList::supported_file_extensions = {"3ds", "3dsx", "elf", "axf",
-                                                         "cci", "cxi",  "app"};
+                                                         "cci", "cxi",  "app", "cia"};
 
 static bool HasSupportedFileExtension(const std::string& file_name) {
     QFileInfo file = QFileInfo(file_name.c_str());

@@ -116,6 +116,11 @@ FileType AppLoader_NCCH::IdentifyType(FileUtil::IOFile& file) {
 
     if (MakeMagic('N', 'C', 'C', 'H') == magic)
         return FileType::CXI;
+    file.Seek(0, SEEK_SET);
+    if (file.ReadArray<u32>(&magic, 1) != 1)
+        return FileType::Error;
+    if (MakeMagic(' ', ' ', '\0', '\0') == magic)
+        return FileType::CIA;
 
     return FileType::Error;
 }
@@ -256,6 +261,11 @@ ResultStatus AppLoader_NCCH::LoadExeFS() {
     if (MakeMagic('N', 'C', 'S', 'D') == ncch_header.magic) {
         LOG_DEBUG(Loader, "Only loading the first (bootable) NCCH within the NCSD file!");
         ncch_offset = 0x4000;
+        file.Seek(ncch_offset, SEEK_SET);
+        file.ReadBytes(&ncch_header, sizeof(NCCH_Header));
+    } else {
+        LOG_DEBUG(Loader, "Loading CIA");
+        ncch_offset = FindNCCHOffsetInCIA(file);
         file.Seek(ncch_offset, SEEK_SET);
         file.ReadBytes(&ncch_header, sizeof(NCCH_Header));
     }
@@ -409,6 +419,19 @@ ResultStatus AppLoader_NCCH::ReadRomFS(std::shared_ptr<FileUtil::IOFile>& romfs_
     }
     LOG_DEBUG(Loader, "NCCH has no RomFS");
     return ResultStatus::ErrorNotUsed;
+}
+
+u32 FindNCCHOffsetInCIA(FileUtil::IOFile& file) {
+    // Reset read pointer in case this file has been read before.
+    file.Seek(0, SEEK_SET);
+    CIAContext ctx;
+
+    file.ReadBytes(&ctx.header, sizeof(CIAHeader));
+    ctx.certs_offset = Common::AlignUp(ctx.header.header_size, 64);
+    ctx.tik_offset = Common::AlignUp(ctx.certs_offset + ctx.header.cert_size, 64);
+    ctx.tmd_offset = Common::AlignUp(ctx.tik_offset + ctx.header.ticket_size, 64);
+    ctx.content_offset = Common::AlignUp(ctx.tmd_offset + ctx.header.tmd_size, 64);
+    return ctx.content_offset;
 }
 
 } // namespace Loader

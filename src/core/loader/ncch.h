@@ -5,10 +5,30 @@
 #pragma once
 
 #include <memory>
+#include "common/alignment.h"
 #include "common/bit_field.h"
 #include "common/common_types.h"
 #include "common/swap.h"
 #include "core/loader/loader.h"
+struct CIAHeader {
+    u32_le header_size;
+    u8 type[2];
+    u8 version[2];
+    u32_le cert_size;
+    u32_le ticket_size;
+    u32_le tmd_size;
+    u32_le meta_size;
+    u64_le content_size;
+    u8 content_index[0x2000];
+};
+
+struct CIAContext {
+    CIAHeader header;
+    u32 certs_offset;
+    u32 tik_offset;
+    u32 tmd_offset;
+    u32 content_offset;
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// NCCH header (Note: "NCCH" appears to be a publicly unknown acronym)
@@ -251,5 +271,5 @@ private:
 
     std::string filepath;
 };
-
+u32 FindNCCHOffsetInCIA(FileUtil::IOFile& file);
 } // namespace Loader
