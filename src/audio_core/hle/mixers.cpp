@@ -73,6 +73,13 @@ void Mixers::ParseConfig(DspConfiguration& config) {
     if (volumeChanged)
         currentVolume = Settings::values.volume;
 
+    if (config.output_format_dirty) {
+        config.output_format_dirty.Assign(0);
+        state.output_format = config.output_format;
+        LOG_TRACE(Audio_DSP, "mixers output_format = %zu",
+                  static_cast<size_t>(config.output_format));
+    }
+
     if (config.headphones_connected_dirty) {
         config.headphones_connected_dirty.Assign(0);
         // Do nothing. (Note: Whether headphones are connected does affect coefficients used for
