@@ -82,5 +82,5 @@ void ConfigureAudio::updateAudioDevices(int sink_index) {
 
 void ConfigureAudio::updateVolume(int volume)
 {
-	Settings::values.volume = ui->volume_slider->value();
+    Settings::values.volume = ui->volume_slider->value();
 }
