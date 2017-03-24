@@ -1,19 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <ui version="4.0">
  <class>ConfigureAudio</class>
  <widget class="QWidget" name="ConfigureAudio">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>223</width>
-    <height>186</height>
-   </rect>
-  </property>
   <layout class="QVBoxLayout">
    <item>
-    <widget class="QGroupBox" name="groupBox">
+    <widget class="QGroupBox">
      <property name="title">
       <string>Audio</string>
      </property>
@@ -21,38 +13,40 @@
       <item>
        <layout class="QHBoxLayout">
         <item>
-         <widget class="QLabel" name="label">
+         <widget class="QLabel">
           <property name="text">
            <string>Output Engine:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="output_sink_combo_box"/>
+         <widget class="QComboBox" name="output_sink_combo_box">
+         </widget>
         </item>
        </layout>
       </item>
       <item>
        <widget class="QCheckBox" name="toggle_audio_stretching">
-        <property name="toolTip">
-         <string>This post-processing effect adjusts audio speed to match emulation speed and helps prevent audio stutter. This however increases audio latency.</string>
-        </property>
         <property name="text">
          <string>Enable audio stretching</string>
+        </property>
+        <property name="toolTip">
+         <string>This post-processing effect adjusts audio speed to match emulation speed and helps prevent audio stutter. This however increases audio latency.</string>
         </property>
        </widget>
       </item>
       <item>
        <layout class="QHBoxLayout">
         <item>
-         <widget class="QLabel" name="label">
+         <widget class="QLabel">
           <property name="text">
            <string>Audio Device:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="audio_device_combo_box"/>
+         <widget class="QComboBox" name="audio_device_combo_box">
+         </widget>
         </item>
        </layout>
       </item>
@@ -101,6 +95,6 @@
    </item>
   </layout>
  </widget>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>
