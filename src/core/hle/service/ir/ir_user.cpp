@@ -155,18 +155,31 @@ static void PutToReceive(const std::vector<u8>& payload) {
     LOG_TRACE(Service_IR, "called, data=%s",
               Common::ArrayToString(payload.data(), payload.size()).c_str());
     size_t size = payload.size();
-    DEBUG_ASSERT(size < 0x4000);
 
     std::vector<u8> packet;
 
     // Builds packet header. For the format info:
     // https://www.3dbrew.org/wiki/IRUSER_Shared_Memory#Packet_structure
+
+    // fixed value
     packet.push_back(0xA5);
+    // destination network ID
     packet.push_back(*(shared_memory->GetPointer(offsetof(SharedMemory, network_id))));
-    if (size < 0x40) {
+
+    // puts the size info.
+    // The highest bit of the first byte is unknown, which is set to zero here. The second highest
+    // bit is a flag that determines whether the size info is in extended form. If the packet size
+    // can be represent within 6 bits, the short form (1 byte) of size info is chosen, the size is
+    // put to the lower bits of this byte, and the flag is clear. If the packet size cannot be
+    // represent within 6 bits, the extended form (2 bytes) is chosen, the lower 8 bits of the size
+    // is put to the second byte, the higher bits of the size is put to the lower bits of the first
+    // byte, and the flag is set. Note that the packet size must be within 14 bits due to this
+    // format restriction, or it will overlap with the flag bit.
+    DEBUG_ASSERT(size < (1 << 14));
+    if (size < (1 << 6)) {
         packet.push_back(static_cast<u8>(size));
     } else {
-        packet.push_back(static_cast<u8>(0x40 | (size >> 8)));
+        packet.push_back(static_cast<u8>((1 << 6) | (size >> 8)));
         packet.push_back(static_cast<u8>(size & 0xFF));
     }
 
@@ -199,13 +212,13 @@ static void PutToReceive(const std::vector<u8>& payload) {
  */
 static void InitializeIrNopShared(Interface* self) {
     IPC::RequestParser rp(Kernel::GetCommandBuffer(), 0x18, 6, 2);
-    u32 shared_buff_size = rp.Pop<u32>();
-    u32 recv_buff_size = rp.Pop<u32>();
-    u32 recv_buff_packet_count = rp.Pop<u32>();
-    u32 send_buff_size = rp.Pop<u32>();
-    u32 send_buff_packet_count = rp.Pop<u32>();
-    u8 baud_rate = static_cast<u8>(rp.Pop<u32>() & 0xFF);
-    Kernel::Handle handle = rp.PopHandle();
+    const u32 shared_buff_size = rp.Pop<u32>();
+    const u32 recv_buff_size = rp.Pop<u32>();
+    const u32 recv_buff_packet_count = rp.Pop<u32>();
+    const u32 send_buff_size = rp.Pop<u32>();
+    const u32 send_buff_packet_count = rp.Pop<u32>();
+    const u8 baud_rate = static_cast<u8>(rp.Pop<u32>() & 0xFF);
+    const Kernel::Handle handle = rp.PopHandle();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
 
@@ -252,7 +265,7 @@ static void InitializeIrNopShared(Interface* self) {
 static void RequireConnection(Interface* self) {
     IPC::RequestParser rp(Kernel::GetCommandBuffer(), 0x06, 1, 0);
 
-    u8 device_id = static_cast<u8>(rp.Pop<u32>() & 0xFF);
+    const u8 device_id = static_cast<u8>(rp.Pop<u32>() & 0xFF);
 
     if (device_id == 1) {
         // These values are observed on a New 3DS. The meaning of them is unclear.
@@ -366,7 +379,7 @@ static void FinalizeIrNop(Interface* self) {
 }
 
 /**
- * IR::SendIrNopservice function
+ * IR::SendIrNop service function
  *  Inpus:
  *      1 : Size of data to send
  *      2 : 2 + (size << 14) (Static buffer descriptor)
@@ -376,8 +389,8 @@ static void FinalizeIrNop(Interface* self) {
  */
 static void SendIrNop(Interface* self) {
     IPC::RequestParser rp(Kernel::GetCommandBuffer(), 0x0D, 1, 2);
-    u32 size = rp.Pop<u32>();
-    VAddr address = rp.PopStaticBuffer();
+    const u32 size = rp.Pop<u32>();
+    const VAddr address = rp.PopStaticBuffer();
 
     std::vector<u8> buffer(size);
     Memory::ReadBlock(address, buffer.data(), size);
@@ -476,7 +489,6 @@ void ShutdownUser() {
     }
 
     extra_hid = nullptr;
-
     shared_memory = nullptr;
     conn_status_event = nullptr;
     send_event = nullptr;

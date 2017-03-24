@@ -27,6 +27,8 @@ ExtraHID::ExtraHID(SendFunc send_func) : IRDevice(send_func) {
     LoadInputDevices();
 
     // The data below is got from a New 3DS
+    // TODO(wwylele): this data is probably writable (via request 3?) and thus should be saved to
+    // and loaded from somewhere.
     calibration_data = std::array<u8, 0x40>{{
         // 0x00
         0x00, 0x00, 0x08, 0x80, 0x85, 0xEB, 0x11, 0x3F,
@@ -84,7 +86,6 @@ void ExtraHID::HandleReadCalibrationDataRequest(const std::vector<u8>& data) {
     std::memcpy(&offset, data.data() + 2, sizeof(u16));
     std::memcpy(&size, data.data() + 4, sizeof(u16));
 
-    // align
     offset = Common::AlignDown(offset, 16);
     size = Common::AlignDown(size, 16);
 
@@ -139,11 +140,16 @@ void ExtraHID::SendHIDStatus(int cycles_late) {
     } response;
     static_assert(sizeof(response) == 6, "HID status response has wrong size!");
 
+    constexpr int C_STICK_CENTER = 0x800;
+    // TODO(wwylele): this value is not accurately measured. We currently assume that the axis can
+    // take values in the whole range of a 12-bit integer.
+    constexpr int C_STICK_RADIUS = 0x7FF;
+
     response.c_stick.header.Assign(static_cast<u8>(ResponseID::ReadHIDStatus));
     float x, y;
     std::tie(x, y) = c_stick->GetStatus();
-    response.c_stick.c_stick_x.Assign(0x800 + 0x7FF * x);
-    response.c_stick.c_stick_y.Assign(0x800 + 0x7FF * y);
+    response.c_stick.c_stick_x.Assign(static_cast<u32>(C_STICK_CENTER + C_STICK_RADIUS * x));
+    response.c_stick.c_stick_y.Assign(static_cast<u32>(C_STICK_CENTER + C_STICK_RADIUS * y));
     response.buttons.battery.Assign(0x1F);
     // Note: for buttons, the bit is set when the button is NOT pressed
     response.buttons.zl.Assign(!zl->GetStatus());

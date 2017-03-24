@@ -14,7 +14,7 @@ namespace IR {
  * Calculates CRC-8-CCITT for the given data.
  * @param data The pointer to the begining of the data.
  * @param size Size of the data.
- * @params the CRC value of the data.
+ * @returns the CRC value of the data.
  */
 u8 Crc8(const u8* data, size_t size);
 
