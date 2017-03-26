@@ -10,6 +10,7 @@
 #include "common/assert.h"
 #include "common/logging/log.h"
 #include "common/math_util.h"
+#include "core/settings.h"
 
 namespace DSP {
 namespace HLE {
@@ -32,6 +33,7 @@ DspStatus Mixers::Tick(DspConfiguration& config, const IntermediateMixSamples& r
     return GetCurrentStatus();
 }
 
+int currentVolume = 5;
 void Mixers::ParseConfig(DspConfiguration& config) {
     if (!config.dirty_raw) {
         return;
@@ -49,23 +51,27 @@ void Mixers::ParseConfig(DspConfiguration& config) {
         LOG_TRACE(Audio_DSP, "mixers mixer2_enabled = %hu", config.mixer2_enabled);
     }
 
-    if (config.volume_0_dirty) {
+    bool volumeChanged = currentVolume != Settings::values.volume && config.volume[0] != 0;
+    if (config.volume_0_dirty || volumeChanged) {
         config.volume_0_dirty.Assign(0);
-        state.intermediate_mixer_volume[0] = config.volume[0];
+        state.intermediate_mixer_volume[0] = config.volume[0] * Settings::values.volume / 10;
         LOG_TRACE(Audio_DSP, "mixers volume[0] = %f", config.volume[0]);
     }
 
-    if (config.volume_1_dirty) {
+    if (config.volume_1_dirty || volumeChanged) {
         config.volume_1_dirty.Assign(0);
-        state.intermediate_mixer_volume[1] = config.volume[1];
+        state.intermediate_mixer_volume[1] = config.volume[1] * Settings::values.volume / 10;
         LOG_TRACE(Audio_DSP, "mixers volume[1] = %f", config.volume[1]);
     }
 
-    if (config.volume_2_dirty) {
+    if (config.volume_2_dirty || volumeChanged) {
         config.volume_2_dirty.Assign(0);
-        state.intermediate_mixer_volume[2] = config.volume[2];
+        state.intermediate_mixer_volume[2] = config.volume[2] * Settings::values.volume / 10;
         LOG_TRACE(Audio_DSP, "mixers volume[2] = %f", config.volume[2]);
     }
+
+    if (volumeChanged)
+        currentVolume = Settings::values.volume;
 
     if (config.output_format_dirty) {
         config.output_format_dirty.Assign(0);

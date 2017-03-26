@@ -22,6 +22,7 @@ public:
 
 public slots:
     void updateAudioDevices(int sink_index);
+    void updateVolume(int volume);
 
 private:
     void setConfiguration();

@@ -96,6 +96,7 @@ void Config::ReadValues() {
         qt_config->value("enable_audio_stretching", true).toBool();
     Settings::values.audio_device_id =
         qt_config->value("output_device", "auto").toString().toStdString();
+    Settings::values.volume = qt_config->value("volume", 5).toInt();
     qt_config->endGroup();
 
     using namespace Service::CAM;

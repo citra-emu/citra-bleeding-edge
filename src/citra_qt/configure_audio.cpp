@@ -23,6 +23,8 @@ ConfigureAudio::ConfigureAudio(QWidget* parent)
     this->setConfiguration();
     connect(ui->output_sink_combo_box, SIGNAL(currentIndexChanged(int)), this,
             SLOT(updateAudioDevices(int)));
+    connect(ui->volume_slider, SIGNAL(valueChanged(int)), this,
+        SLOT(updateVolume(int)));
 }
 
 ConfigureAudio::~ConfigureAudio() {}
@@ -51,6 +53,7 @@ void ConfigureAudio::setConfiguration() {
         }
     }
     ui->audio_device_combo_box->setCurrentIndex(new_device_index);
+    ui->volume_slider->setValue(Settings::values.volume);
 }
 
 void ConfigureAudio::applyConfiguration() {
@@ -61,6 +64,7 @@ void ConfigureAudio::applyConfiguration() {
     Settings::values.audio_device_id =
         ui->audio_device_combo_box->itemText(ui->audio_device_combo_box->currentIndex())
             .toStdString();
+    Settings::values.volume = ui->volume_slider->value();
     Settings::Apply();
 }
 
@@ -74,4 +78,9 @@ void ConfigureAudio::updateAudioDevices(int sink_index) {
     for (const auto& device : device_list) {
         ui->audio_device_combo_box->addItem(device.c_str());
     }
+}
+
+void ConfigureAudio::updateVolume(int volume)
+{
+    Settings::values.volume = ui->volume_slider->value();
 }

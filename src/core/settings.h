@@ -118,6 +118,7 @@ struct Values {
     std::string sink_id;
     bool enable_audio_stretching;
     std::string audio_device_id;
+    int volume;
 
     // Camera
     std::array<std::string, Service::CAM::NumCameras> camera_name;
