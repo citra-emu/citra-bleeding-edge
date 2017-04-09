@@ -217,7 +217,7 @@ static void InitializeIrNopShared(Interface* self) {
     const u32 recv_buff_packet_count = rp.Pop<u32>();
     const u32 send_buff_size = rp.Pop<u32>();
     const u32 send_buff_packet_count = rp.Pop<u32>();
-    const u8 baud_rate = static_cast<u8>(rp.Pop<u32>() & 0xFF);
+    const u8 baud_rate = rp.Pop<u8>();
     const Kernel::Handle handle = rp.PopHandle();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
@@ -265,7 +265,7 @@ static void InitializeIrNopShared(Interface* self) {
 static void RequireConnection(Interface* self) {
     IPC::RequestParser rp(Kernel::GetCommandBuffer(), 0x06, 1, 0);
 
-    const u8 device_id = static_cast<u8>(rp.Pop<u32>() & 0xFF);
+    const u8 device_id = rp.Pop<u8>();
 
     if (device_id == 1) {
         // These values are observed on a New 3DS. The meaning of them is unclear.
