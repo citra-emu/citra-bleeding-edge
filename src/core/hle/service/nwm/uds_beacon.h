@@ -81,7 +81,6 @@ struct TagHeader {
 static_assert(sizeof(TagHeader) == 2, "TagHeader has incorrect size.");
 
 struct DummyTag {
-    static constexpr u8 TagId = 20;
     TagHeader header;
     std::array<u8, 3> oui;
     u8 oui_type;
@@ -91,8 +90,6 @@ struct DummyTag {
 static_assert(sizeof(DummyTag) == 9, "DummyTag has incorrect size.");
 
 struct NetworkInfoTag {
-    static constexpr u8 TagId = 21;
-
     TagHeader header;
     std::array<u8, 0x1F> network_info;
     std::array<u8, 0x14> sha_hash;
