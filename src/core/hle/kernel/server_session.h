@@ -50,12 +50,13 @@ public:
      * Creates a pair of ServerSession and an associated ClientSession.
      * @param name        Optional name of the ports.
      * @param hle_handler Optional HLE handler for this server session.
+     * @param client_port Optional The ClientPort that spawned this session.
      * @return The created session tuple
      */
     static SessionPair CreateSessionPair(
         const std::string& name = "Unknown",
         std::shared_ptr<Service::SessionRequestHandler> hle_handler = nullptr,
-        ClientPort* client_port = nullptr);
+        SharedPtr<ClientPort> client_port = nullptr);
 
     /**
      * Handle a sync request from the emulated application.

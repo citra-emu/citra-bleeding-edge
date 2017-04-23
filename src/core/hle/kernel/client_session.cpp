@@ -20,9 +20,6 @@ ClientSession::~ClientSession() {
 
         // TODO(Subv): Force a wake up of all the ServerSession's waiting threads and set
         // their WaitSynchronization result to 0xC920181A.
-
-        // TODO(Subv): Wake up all the ClientSession's waiting threads and set
-        // the SendSyncRequest result to 0xC920181A.
     }
 
     parent->client = nullptr;

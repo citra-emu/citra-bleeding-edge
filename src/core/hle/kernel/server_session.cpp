@@ -70,7 +70,8 @@ ResultCode ServerSession::HandleSyncRequest() {
 
 ServerSession::SessionPair ServerSession::CreateSessionPair(
     const std::string& name, std::shared_ptr<Service::SessionRequestHandler> hle_handler,
-    ClientPort* port) {
+    SharedPtr<ClientPort> port) {
+
     auto server_session =
         ServerSession::Create(name + "_Server", std::move(hle_handler)).MoveFrom();
     auto client_session = ClientSession::Create(name + "_Client").MoveFrom();
