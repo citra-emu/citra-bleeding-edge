@@ -6,6 +6,9 @@
 
 #include <memory>
 #include <string>
+
+#include <boost/optional.hpp>
+
 #include "common/common_types.h"
 #include "core/memory.h"
 #include "core/perf_stats.h"
@@ -39,7 +42,10 @@ public:
         ErrorLoader_ErrorEncrypted, ///< Error loading the specified application due to encryption
         ErrorLoader_ErrorInvalidFormat, ///< Error loading the specified application due to an
                                         /// invalid format
+        ErrorSystemFiles,               ///< Error in finding system files
+        ErrorSharedFont,                ///< Error in finding shared font
         ErrorVideoCore,                 ///< Error in the video core
+        ErrorUnknown                    ///< Any other error
     };
 
     /**
@@ -96,6 +102,22 @@ public:
     PerfStats perf_stats;
     FrameLimiter frame_limiter;
 
+    ResultStatus GetStatus() {
+        return status;
+    }
+
+    void SetStatus(ResultStatus new_status, std::string details = std::string()) {
+        status = new_status;
+        if (details == std::string())
+            status_details = boost::none;
+        else
+            status_details = details;
+    }
+
+    boost::optional<std::string> GetStatusDetails() {
+        return status_details;
+    }
+
 private:
     /**
      * Initialize the emulated system.
@@ -118,6 +140,9 @@ private:
     bool reschedule_pending{};
 
     static System s_instance;
+
+    ResultStatus status;
+    boost::optional<std::string> status_details;
 };
 
 inline ARM_Interface& CPU() {
