@@ -2,6 +2,8 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <cstring>
+
 #include "common/scm_rev.h"
 #include "core/telemetry_session.h"
 
@@ -17,7 +19,7 @@ TelemetrySession::TelemetrySession() {
     AddField(Telemetry::FieldType::Session, "StartTime", start_time);
 
     // Log one-time application information
-    const bool is_git_dirty{strstr(Common::g_scm_desc, "dirty") != nullptr};
+    const bool is_git_dirty{std::strstr(Common::g_scm_desc, "dirty") != nullptr};
     AddField(Telemetry::FieldType::App, "GitIsDirty", is_git_dirty);
     AddField(Telemetry::FieldType::App, "GitBranch", Common::g_scm_branch);
     AddField(Telemetry::FieldType::App, "GitRevision", Common::g_scm_rev);
