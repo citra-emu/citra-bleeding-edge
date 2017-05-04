@@ -14,7 +14,7 @@ namespace Core {
  * session, logging any one-time fields. Interfaces with the telemetry backend used for submitting
  * data to the web service. Submits session data on close.
  */
-class TelemetrySession {
+class TelemetrySession : NonCopyable {
 public:
     TelemetrySession();
     ~TelemetrySession();

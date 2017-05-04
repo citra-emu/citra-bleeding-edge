@@ -85,7 +85,7 @@ public:
      * Returns a reference to the telemetry session for this emulation session.
      * @returns Reference to the telemetry session.
      */
-    TelemetrySession& TelemetrySession() const {
+    Core::TelemetrySession& TelemetrySession() const {
         return *telemetry_session;
     }
 
