@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>citra.edge</id>
+    <version>0.1.${VERSION_BUILD_NUMBER}</version>
+    <authors>Citra Development Team</authors>
+    <title>Citra Edge</title>
+    <description>Citra 3DS Emulator for Windows - Bleeding Edge builds</description>
+    <!-- Squirrel doesn't seem to do anything with this... -->
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <licenseUrl>https://raw.githubusercontent.com/citra-emu/citra/master/license.txt</licenseUrl>
+    <releaseNotes>None</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <iconUrl>https://citra-emu.org/theme/citra-bs/images/favicon.ico</iconUrl>
+    <projectUrl>https://citra-emu.org</projectUrl>
+  </metadata>
+</package>
