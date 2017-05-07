@@ -39,6 +39,7 @@ set(SRCS
             scm_rev.cpp
             string_util.cpp
             symbols.cpp
+            telemetry.cpp
             thread.cpp
             timer.cpp
             )
@@ -76,6 +77,7 @@ set(HEADERS
             swap.h
             symbols.h
             synchronized_wrapper.h
+            telemetry.h
             thread.h
             thread_queue_list.h
             timer.h
