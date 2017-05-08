@@ -1,0 +1,40 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+GLFW_ICON               ICON                    "../../dist/citra.ico"
+
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    0,1,0,0
+ PRODUCTVERSION 0,1,0,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32 // 0x40004L  // VOS_NT_WINDOWS32
+ FILETYPE VFT_APP // 0x1L    // VFT_APP
+ FILESUBTYPE 0x0L
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904b0" // en-us unicode
+        {
+            VALUE "CompanyName",      "Citra Development Team"
+            VALUE "FileDescription",  "Citra 3ds Emulator - Bleeding Edge"
+            VALUE "FileVersion",      "0.1.0"
+            VALUE "InternalName",     "updater.exe"
+            VALUE "LegalCopyright",   "GPL v2+"
+            VALUE "OriginalFilename", "updater.exe"
+            VALUE "ProductName",      "Citra Edge"
+            VALUE "ProductVersion",   "0.1.0"
+            VALUE "SquirrelAwareVersion", "1"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x409, 1200 // en-us unicode
+    }
+}
