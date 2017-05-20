@@ -144,7 +144,7 @@ struct TexturingRegs {
     };
 
     BitField<0, 22, u32> cube_address[5];
-    
+
     PAddr GetCubePhysicalAddress(CubeFace face) const {
         if (face == CubeFace::PositiveX)
             return texture0.GetPhysicalAddress();
