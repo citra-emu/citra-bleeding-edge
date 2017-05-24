@@ -22,6 +22,7 @@
 #include "core/file_sys/archive_sdmcwriteonly.h"
 #include "core/file_sys/archive_systemsavedata.h"
 #include "core/file_sys/directory_backend.h"
+#include "core/file_sys/errors.h"
 #include "core/file_sys/file_backend.h"
 #include "core/hle/kernel/client_session.h"
 #include "core/hle/result.h"
@@ -267,8 +268,7 @@ ResultVal<ArchiveHandle> OpenArchive(ArchiveIdCode id_code, FileSys::Path& archi
 
     auto itr = id_code_map.find(id_code);
     if (itr == id_code_map.end())
-        return ResultCode(ErrorDescription::FS_NotFound, ErrorModule::FS, ErrorSummary::NotFound,
-                          ErrorLevel::Status);
+        return FileSys::ERROR_NOT_FOUND;
 
     CASCADE_RESULT(std::unique_ptr<ArchiveBackend> res, itr->second->Open(archive_path));
 
