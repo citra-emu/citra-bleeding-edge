@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <tuple>
 #include "common/assert.h"
 #include "common/bit_field.h"
 #include "common/color.h"
@@ -69,6 +70,49 @@ static int SignedArea(const Math::Vec2<Fix12P4>& vtx1, const Math::Vec2<Fix12P4>
     // TODO: There is a very small chance this will overflow for sizeof(int) == 4
     return Math::Cross(vec1, vec2).z;
 };
+
+/// Convert a 3D vector for cube map coordinates to 2D texture coordinates along with the face name
+static std::tuple<float24, float24, TexturingRegs::CubeFace> ConvertCubeCoord(float24 u, float24 v,
+                                                                              float24 w) {
+    float abs_u = std::abs(u.ToFloat32());
+    float abs_v = std::abs(v.ToFloat32());
+    float abs_w = std::abs(w.ToFloat32());
+    float24 x, y, z;
+    TexturingRegs::CubeFace face;
+    if (abs_u > abs_v && abs_u > abs_w) {
+        if (u > float24::FromFloat32(0)) {
+            face = TexturingRegs::CubeFace::PositiveX;
+            y = -v;
+        } else {
+            face = TexturingRegs::CubeFace::NegativeX;
+            y = v;
+        }
+        x = -w;
+        z = u;
+    } else if (abs_v > abs_w) {
+        if (v > float24::FromFloat32(0)) {
+            face = TexturingRegs::CubeFace::PositiveY;
+            x = u;
+        } else {
+            face = TexturingRegs::CubeFace::NegativeY;
+            x = -u;
+        }
+        y = w;
+        z = v;
+    } else {
+        if (w > float24::FromFloat32(0)) {
+            face = TexturingRegs::CubeFace::PositiveZ;
+            y = -v;
+        } else {
+            face = TexturingRegs::CubeFace::NegativeZ;
+            y = v;
+        }
+        x = u;
+        z = w;
+    }
+    const float24 half = float24::FromFloat32(0.5f);
+    return std::make_tuple(x / z * half + half, y / z * half + half, face);
+}
 
 MICROPROFILE_DEFINE(GPU_Rasterization, "GPU", "Rasterization", MP_RGB(50, 50, 240));
 
@@ -284,10 +328,18 @@ static void ProcessTriangleInternal(const Vertex& v0, const Vertex& v1, const Ve
 
                 // Only unit 0 respects the texturing type (according to 3DBrew)
                 // TODO: Refactor so cubemaps and shadowmaps can be handled
+                bool is_cube = false;
+                TexturingRegs::CubeFace face;
                 if (i == 0) {
                     switch (texture.config.type) {
                     case TexturingRegs::TextureConfig::Texture2D:
                         break;
+                    case TexturingRegs::TextureConfig::TextureCube: {
+                        auto w = GetInterpolatedAttribute(v0.tc0_w, v1.tc0_w, v2.tc0_w);
+                        std::tie(u, v, face) = ConvertCubeCoord(u, v, w);
+                        is_cube = true;
+                        break;
+                    }
                     case TexturingRegs::TextureConfig::Projection2D: {
                         auto tc0_w = GetInterpolatedAttribute(v0.tc0_w, v1.tc0_w, v2.tc0_w);
                         u /= tc0_w;
@@ -322,8 +374,14 @@ static void ProcessTriangleInternal(const Vertex& v0, const Vertex& v1, const Ve
                     t = texture.config.height - 1 -
                         GetWrappedTexCoord(texture.config.wrap_t, t, texture.config.height);
 
-                    u8* texture_data =
-                        Memory::GetPhysicalPointer(texture.config.GetPhysicalAddress());
+                    u8* texture_data;
+                    if (is_cube) {
+                        texture_data =
+                            Memory::GetPhysicalPointer(regs.texturing.GetCubePhysicalAddress(face));
+                    } else {
+                        texture_data =
+                            Memory::GetPhysicalPointer(texture.config.GetPhysicalAddress());
+                    }
                     auto info =
                         Texture::TextureInfo::FromPicaRegister(texture.config, texture.format);
 
