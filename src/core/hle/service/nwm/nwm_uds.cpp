@@ -314,8 +314,11 @@ static void BeginHostingNetwork(Interface* self) {
     // The host is always the first node
     connection_status.network_node_id = 1;
     node_info[0].network_node_id = 1;
+    connection_status.nodes[0] = connection_status.network_node_id;
     // Set the bit 0 in the nodes bitmask to indicate that node 1 is already taken.
     connection_status.node_bitmask |= 1;
+    // Notify the application that the first node was set.
+    connection_status.changed_nodes |= 1;
 
     // If the game has a preferred channel, use that instead.
     if (network_info.channel != 0)
