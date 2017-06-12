@@ -18,7 +18,7 @@ add_subdirectory(dynarmic)
 add_subdirectory(fmt)
 
 # getopt
-if (MSVC)
+if (WIN_CREATE_INSTALLER OR MSVC)
     add_subdirectory(getopt)
 endif()
 
@@ -50,3 +50,4 @@ if (ARCHITECTURE_x86_64)
         target_compile_options(xbyak INTERFACE -fno-operator-names)
     endif()
 endif()
+
