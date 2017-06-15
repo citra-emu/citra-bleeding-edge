@@ -1,8 +1,16 @@
 # shallow clone
 clone_depth: 10
-
 # don't build on tag
 skip_tags: true
+
+environment:
+  matrix:
+    - BUILD_TYPE: mingw
+    #- BUILD_TYPE: msvc
+  BUILD_PASSWORD:
+    secure: EXGNlWKJsCtbeImEJ5EP9qrxZ+EqUFfNy+CP61nDOMA=
+  CITRA_BOT_PASSWORD:
+    secure: lP9M+9me/uecz6fNsMUjRqdeoHPkdeHeLEHIP0qfp2wo6FtQySBnC+l27cFsPAKF
 
 cache:
   - C:\ProgramData\chocolatey\bin -> appveyor.yml
@@ -18,59 +26,174 @@ configuration:
 
 install:
   - git submodule update --init --recursive
+  - ps: |
+        if ($env:BUILD_TYPE -eq 'mingw') {
+          # redirect err to null to prevent warnings from becoming errors
+          # workaround for cyclical dependancies
+          #C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syu" 2> $null
+          C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-freetype mingw64/mingw-w64-x86_64-fontconfig" 2> $null
+          C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-cmake mingw64/mingw-w64-x86_64-qt5 mingw64/mingw-w64-x86_64-SDL2" 2> $null
+        }
 
 before_build:
-  - mkdir build
-  - cd build
-  - cmake -G "Visual Studio 15 2017 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 ..
+  - mkdir %BUILD_TYPE%build
+  - cd %BUILD_TYPE%build
+  - ps: |
+        if ($env:BUILD_TYPE -eq 'msvc') {
+          cmake -G "Visual Studio 15 2017 Win64" -DCITRA_USE_BUNDLED_QT=1 -DCITRA_USE_BUNDLED_SDL2=1 -DWIN_CREATE_INSTALLER=1 ..
+        } else {
+          $old_path = $env:Path
+          # Change path to just include the mingw gcc and *not* sh.exe (which breaks things when using MinGW Makefiles)
+          $env:Path = "C:\msys64\mingw64\bin\;"
+          # make sure error output from this command isn't interpreted as an error in powershell
+          C:\Windows\System32\cmd /c 'C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll -DWIN_CREATE_INSTALLER=1 .. 2>&1'
+          $env:Path = $old_path
+        }
   - cd ..
 
-build:
-  project: build/citra.sln
-  parallel: true
+build_script:
+  - ps: |
+        if ($env:BUILD_TYPE -eq 'msvc') {
+          # https://www.appveyor.com/docs/build-phase
+          msbuild msvcbuild/citra.sln /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+        } else {
+          $env:Path = "C:\msys64\mingw64\bin\;" + $env:Path
+          C:\Windows\System32\cmd /c "C:\msys64\mingw64\bin\mingw32-make -C mingwbuild/ -j${env:NUMBER_OF_PROCESSORS} 2>&1"
+        }
+
+test_script:
+  - cd %BUILD_TYPE%build && ctest -VV -C Release && cd ..
 
 after_build:
   - ps: |
-        $GITDATE = $(git show -s --date=short --format='%ad') -replace "-",""
-        $GITREV = $(git show -s --format='%h')
-        $GIT_LONG_HASH = $(git rev-parse HEAD)
-        # Where are these spaces coming from? Regardless, let's remove them
-        $MSVC_BUILD_NAME = "citra-windows-msvc-$GITDATE-$GITREV.zip" -replace " ", ""
-        $MSVC_BUILD_PDB = "citra-windows-msvc-$GITDATE-$GITREV-debugsymbols.zip" -replace " ", ""
-        $BINTRAY_VERSION = "nightly-$GIT_LONG_HASH" -replace " ", ""
+        if ($env:BUILD_TYPE -eq 'mingw') {
+          # Build the installer
+          $APPVEYOR_BUILD_NUMBER = "$env:APPVEYOR_BUILD_NUMBER"
+          $CMAKE_SOURCE_DIR = "$env:APPVEYOR_BUILD_FOLDER"
+          $CMAKE_BINARY_DIR = "$CMAKE_SOURCE_DIR/mingwbuild"
+          $SQUIRREL_DIR = "$CMAKE_BINARY_DIR/squirrel.win"
+          $SQUIRREL_RELEASE_DIR = "$SQUIRREL_DIR/Release"
+          $SQUIRREL_BUILD_DIR = "$SQUIRREL_DIR/Build"
+          $SQUIRREL_BIN_DIR = "$SQUIRREL_BUILD_DIR/lib/net45"
+          $MSVC_RUNTIME_INSTALLER = "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/1033/vcredist_x64.exe"
 
-        # set the build names as env vars so the artifacts can upload them
-        $env:MSVC_BUILD_NAME = $MSVC_BUILD_NAME
-        $env:MSVC_BUILD_PDB = $MSVC_BUILD_PDB
-        $env:GITREV = $GITREV
+          # download nuget cmdline if it doesn't exist
+          if (!(Test-Path -Path "$CMAKE_BINARY_DIR/nuget")) {
+              New-Item -ItemType Directory -Force -Path "$CMAKE_BINARY_DIR/nuget" | Out-Null
+              (New-Object Net.WebClient).DownloadFile("https://dist.nuget.org/win-x86-commandline/v3.4.4/NuGet.exe",
+                  "$CMAKE_BINARY_DIR/nuget/nuget.exe")
+          }
+          # download squirrel if it doesn't exist
+          if (!(Test-Path -Path "$CMAKE_BINARY_DIR/squirrel")) {
+              New-Item -ItemType Directory -Force -Path "$CMAKE_BINARY_DIR/squirrel" | Out-Null
+              (New-Object Net.WebClient).DownloadFile("https://github.com/Squirrel/Squirrel.Windows/releases/download/1.4.4/Squirrel.Windows-1.4.4.zip",
+                  "$CMAKE_BINARY_DIR/squirrel/squirrel.zip")
+              7z e "$CMAKE_BINARY_DIR/squirrel/squirrel.zip" -o"$CMAKE_BINARY_DIR/squirrel" -r -y | Out-Null
+          }
 
-        7z a -tzip $MSVC_BUILD_PDB .\build\bin\release\*.pdb
-        rm .\build\bin\release\*.pdb
-        7z a -tzip $MSVC_BUILD_NAME .\build\bin\release\* .\license.txt .\README.md
+          # make the path we'll copy the output to post build
+          New-Item -ItemType Directory -Force -Path $SQUIRREL_BIN_DIR | Out-Null
+          New-Item -ItemType Directory -Force -Path $SQUIRREL_BUILD_DIR | Out-Null
+          New-Item -ItemType Directory -Force -Path $SQUIRREL_RELEASE_DIR | Out-Null
 
-test_script:
-  - cd build && ctest -VV -C Release && cd ..
+          # Download the previous release information to generate a delta build
+          $LATEST_RELEASE_URL = "https://api.github.com/repos/citra-emu/citra-bleeding-edge/releases/latest"
+          $LATEST_RELEASE_JSON = Invoke-WebRequest $LATEST_RELEASE_URL -Headers @{"Accept"="application/json"; "User-Agent"="citrabot"; "Authorization"="token $env:CITRA_BOT_PASSWORD"}
+          $LATEST_RELEASE_JSON.Content -match '.*"tag_name":\s*"([^"]*)".*' | Out-Null
+          $LATEST_RELEASE_TAG = $Matches[1]
+          $RELEASE_URL = "https://github.com/citra-emu/citra-bleeding-edge/releases/download/$LATEST_RELEASE_TAG"
+          $PREVIOUS_RELEASE_NUMBER = ($LATEST_RELEASE_TAG -split "-")[-1]
+          (New-Object Net.WebClient).DownloadFile("$RELEASE_URL/RELEASES", "$SQUIRREL_RELEASE_DIR/RELEASES")
+          (New-Object Net.WebClient).DownloadFile("$RELEASE_URL/citra.edge-0.1.$PREVIOUS_RELEASE_NUMBER-full.nupkg", "$SQUIRREL_RELEASE_DIR/citra.edge-0.1.$PREVIOUS_RELEASE_NUMBER-full.nupkg")
+
+          # Copy the files to the folder for nuget to package
+          # First copy the citra exe files and all the dlls to the new release folder
+          Get-ChildItem "$CMAKE_BINARY_DIR" -Recurse -Filter "citra*.exe" | Copy-Item -destination $SQUIRREL_BIN_DIR
+          Get-ChildItem "$CMAKE_BINARY_DIR" -Recurse -Filter "updater.exe" | Copy-Item -destination $SQUIRREL_BIN_DIR
+          $MingwDLLs = "Qt5Core.dll","Qt5Widgets.dll","Qt5Gui.dll","Qt5OpenGL.dll","libbz2-1.dll","libicudt57.dll","libicuin57.dll","libicuuc57.dll","libffi-6.dll","libfreetype-6.dll","libgcc_s_seh-1.dll","libglib-2.0-0.dll","libgobject-2.0-0.dll","libgraphite2.dll","libiconv-2.dll","libharfbuzz-0.dll","libintl-8.dll","libpcre-1.dll","libpcre16-0.dll","libpng16-16.dll","libstdc++-6.dll","libwinpthread-1.dll","SDL2.dll","zlib1.dll"
+          foreach ($file in $MingwDLLs) {
+            Copy-Item -path "C:/msys64/mingw64/bin/$file" -force -destination "$SQUIRREL_BIN_DIR"
+          }
+          New-Item -ItemType Directory -Force -Path "$SQUIRREL_BIN_DIR/platforms" | Out-Null
+          Copy-Item -path "C:/msys64/mingw64/share/qt5/plugins/platforms/qwindows.dll" -force -destination "$SQUIRREL_BIN_DIR/platforms"
+          Copy-Item -path "$CMAKE_SOURCE_DIR/license.txt" -destination "$SQUIRREL_BIN_DIR"
+          Copy-Item -path "$CMAKE_SOURCE_DIR/README.md" -destination "$SQUIRREL_BIN_DIR"
+
+          # build the nuget file
+          $arguments = "pack", "$CMAKE_BINARY_DIR/citra.nuspec", "-BasePath", "$SQUIRREL_BUILD_DIR", "-OutputDirectory", "$SQUIRREL_BUILD_DIR"
+
+          Write-Output "running nuget"
+          $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+          $pinfo.FileName = "$CMAKE_BINARY_DIR/nuget/nuget.exe"
+          $pinfo.RedirectStandardError = $true
+          $pinfo.RedirectStandardOutput = $true
+          $pinfo.UseShellExecute = $false
+          $pinfo.Arguments = $arguments
+          $p = New-Object System.Diagnostics.Process
+          $p.StartInfo = $pinfo
+          $p.Start() | Out-Null
+          $p.WaitForExit()
+          $stdout = $p.StandardOutput.ReadToEnd()
+          $stderr = $p.StandardError.ReadToEnd()
+          Write-Host "stdout: $stdout"
+          Write-Host "stderr: $stderr"
+          Write-Host "exit code: " + $p.ExitCode
+
+          # Start-Process -FilePath "$CMAKE_BINARY_DIR/nuget/nuget.exe" -Wait -NoNewWindow -ArgumentList $arguments
+          Write-Output "running squirrel"
+          $arguments = "--releasify=$SQUIRREL_BUILD_DIR/citra.edge.0.1.$APPVEYOR_BUILD_NUMBER.nupkg", "--releaseDir=$SQUIRREL_RELEASE_DIR", "--icon=$CMAKE_SOURCE_DIR/dist/citra.ico"
+          
+          $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+          $pinfo.FileName = "$CMAKE_BINARY_DIR/squirrel/squirrel.exe"
+          $pinfo.RedirectStandardError = $true
+          $pinfo.RedirectStandardOutput = $true
+          $pinfo.UseShellExecute = $false
+          $pinfo.Arguments = $arguments
+          $p = New-Object System.Diagnostics.Process
+          $p.StartInfo = $pinfo
+          $p.Start() | Out-Null
+          $p.WaitForExit()
+          $stdout = $p.StandardOutput.ReadToEnd()
+          $stderr = $p.StandardError.ReadToEnd()
+          Write-Host "stdout: $stdout"
+          Write-Host "stderr: $stderr"
+          Write-Host "exit code: " + $p.ExitCode
+
+          Write-Host "copying artifacts"
+          
+          #Start-Process -FilePath $CMAKE_BINARY_DIR/squirrel/squirrel.exe -Wait -NoNewWindow -ArgumentList $arguments
+
+          # copy the files to the root dir so it'll be easier to make them artifacts
+          Copy-Item -path "$SQUIRREL_RELEASE_DIR/citra*.nupkg" -recurse -force -destination $CMAKE_SOURCE_DIR
+          Copy-Item -path "$SQUIRREL_RELEASE_DIR/RELEASES" -recurse -force -destination $CMAKE_SOURCE_DIR
+          Copy-Item -path "$SQUIRREL_RELEASE_DIR/Setup.exe" -recurse -force -destination $CMAKE_SOURCE_DIR
+          Rename-Item -path "$CMAKE_SOURCE_DIR/Setup.exe" CitraSetup.exe
+        } else {
+          7z a -tzip $MSVC_BUILD_PDB .\build\bin\release\*.pdb
+          rm .\build\bin\release\*.pdb
+          7z a -tzip $MSVC_BUILD_NAME .\build\bin\release\* .\license.txt .\README.md
+        }
 
 artifacts:
-  - path: $(MSVC_BUILD_NAME)
-    name: msvcbuild
-    type: zip
-  - path: $(MSVC_BUILD_PDB)
-    name: msvcdebug
-    type: zip
-
+  - path: citra.edge-0.1.$(APPVEYOR_BUILD_NUMBER)-full.nupkg
+    name: FullPkg
+  - path: citra.edge-0.1.$(APPVEYOR_BUILD_NUMBER)-delta.nupkg
+    name: DeltaPkg
+  - path: CitraSetup.exe
+    name: Installer
+  - path: RELEASES
+    name: RELEASES
+    
 deploy:
-  provider: GitHub
-  release: nightly-$(appveyor_build_number)
+  release: bleeding-edge-$(appveyor_build_number)
   description: |
-    Citra nightly releases. Please choose the correct download for your operating system from the list below.
+    Build number $(appveyor_build_number)
 
-    Short Commit Hash $(GITREV)
+    If you are unsure what to download, [download and run the latest CitraSetup.exe](https://github.com/citra-emu/citra-bleeding-edge/releases/download/bleeding-edge-$(appveyor_build_number)/CitraSetup.exe)
+  provider: GitHub
   auth_token:
-    secure: "dbpsMC/MgPKWFNJCXpQl4cR8FYhepkPLjgNp/pRMktZ8oLKTqPYErfreaIxb/4P1"
-  artifact: msvcbuild
+    secure: 5iwe1T0xdmGxtJi8YIOfdUZvKNoriR5cqhfXN8QQ4J5Uj9syL6GeUNjgATkMzfCq
+  artifact: RELEASES,FullPkg,DeltaPkg,Installer
   draft: false
+  # github tags api doesn't return prelease tags >.<
   prerelease: false
-  on:
-    branch: master
-    appveyor_repo_name: citra-emu/citra-nightly
