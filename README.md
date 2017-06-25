@@ -1,3 +1,24 @@
+# lemonbot merge log
+
+Scroll down for the original README.md!
+
+======
+
+|   PR | Ref                        | Commit                                     | Author    | Status   |
+|-----:|:---------------------------|:-------------------------------------------|:----------|:---------|
+|   31 | jit-experiments            | `65d89d03c4a8f90c7594a74b51451d0a21ac891e` | MerryMage | Merged   |
+|   19 | pipe3                      | `acc09857d575a2663dae64deaedbbf7f5cb984c8` | MerryMage | Merged   |
+|   17 | bleeding-edge-base         | `a44b39c763f42da7ed27832d3c8deaa152876a88` | jroweboy  | Merged   |
+|    5 | jfr-fix-batch-errors       | `4f4326d0cf0f7a5e23057df89acf8f0aafa19f41` | jroweboy  | Merged   |
+| 2800 | fog-lutlutlut              | `8978ecb09caa91424b7117a91d22e7f54040e701` | wwylele   | Merged   |
+| 2799 | virtual-cached-range-flush | `d5531357487a144cf962ce08a912417fd5e61570` | yuriks    | Merged   |
+| 2784 | font-archive               | `45d5dcd508bc24409f9d8dc5e847bb9045d7fe8d` | wwylele   | Merged   |
+| 2778 | uds_more                   | `6115f87b3f0225470748977f75049dcda4ddfc44` | Subv      | Merged   |
+
+End of merge log. You can find the original README.md below the break.
+
+======
+
 **BEFORE FILING AN ISSUE, READ THE RELEVANT SECTION IN THE [CONTRIBUTING](https://github.com/citra-emu/citra/blob/master/CONTRIBUTING.md#reporting-issues) FILE!!!**
 
 Citra Emulator
