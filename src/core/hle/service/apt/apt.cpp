@@ -6,6 +6,7 @@
 #include "common/file_util.h"
 #include "common/logging/log.h"
 #include "core/core.h"
+#include "core/file_sys/file_backend.h"
 #include "core/hle/applets/applet.h"
 #include "core/hle/kernel/event.h"
 #include "core/hle/kernel/mutex.h"
@@ -27,6 +28,7 @@ namespace APT {
 
 /// Handle to shared memory region designated to for shared system font
 static Kernel::SharedPtr<Kernel::SharedMemory> shared_font_mem;
+static bool shared_font_loaded = false;
 static bool shared_font_relocated = false;
 
 static Kernel::SharedPtr<Kernel::Mutex> lock;
@@ -71,7 +73,7 @@ void Initialize(Service::Interface* self) {
 void GetSharedFont(Service::Interface* self) {
     IPC::RequestParser rp(Kernel::GetCommandBuffer(), 0x44, 0, 0); // 0x00440000
     IPC::RequestBuilder rb = rp.MakeBuilder(2, 2);
-    if (!shared_font_mem) {
+    if (!shared_font_loaded) {
         LOG_ERROR(Service_APT, "shared font file missing - go dump it from your 3ds");
         rb.Push<u32>(-1); // TODO: Find the right error code
         rb.Skip(1 + 2, true);
@@ -644,6 +646,214 @@ void CheckNew3DS(Service::Interface* self) {
     LOG_WARNING(Service_APT, "(STUBBED) called");
 }
 
+// TODO (wwylele): reimplement this with a full RomFS manager
+static const u8* GetRomFSFile(const u8* romfs, const std::vector<std::u16string>& path) {
+    constexpr u32 INVALID_FIELD = 0xFFFFFFFF;
+
+    // Split path into directory names and file name
+    std::vector<std::u16string> dir_names = path;
+    dir_names.pop_back();
+    const std::u16string& file_name = path.back();
+
+    struct {
+        u32_le header_length;
+        u32_le dir_hash_table_offset;
+        u32_le dir_hash_table_length;
+        u32_le dir_table_offset;
+        u32_le dir_table_length;
+        u32_le file_hash_table_offset;
+        u32_le file_hash_table_length;
+        u32_le file_table_offset;
+        u32_le file_table_length;
+        u32_le data_offset;
+    } header;
+    static_assert(sizeof(header) == 0x28, "header has incorrect size");
+
+    std::memcpy(&header, romfs, sizeof(header));
+
+    auto MatchName = [](const u8* buffer, const std::u16string& name) {
+        u32_le name_length; // in bytes
+        std::memcpy(&name_length, buffer, sizeof(u32));
+        std::vector<char16_t> name_buffer(name_length / sizeof(char16_t));
+        std::memcpy(name_buffer.data(), buffer + 4, name_length);
+        return name == std::u16string(name_buffer.begin(), name_buffer.end());
+    };
+
+    struct {
+        u32_le parent_dir_offset;
+        u32_le next_dir_offset;
+        u32_le first_child_dir_offset;
+        u32_le first_file_offset;
+        u32_le same_hash_next_dir_offset;
+        u32_le name_length;
+        // followed by directory name
+    } dir;
+    static_assert(sizeof(dir) == 0x18, "dir has incorrect size");
+
+    // Find directories of each level
+    const u8* current_dir = romfs + header.dir_table_offset;
+    std::memcpy(&dir, current_dir, sizeof(dir));
+    for (const std::u16string& dir_name : dir_names) {
+        u32 child_dir_offset;
+        child_dir_offset = dir.first_child_dir_offset;
+        while (true) {
+            if (child_dir_offset == INVALID_FIELD) {
+                return nullptr;
+            }
+            const u8* current_child_dir = romfs + header.dir_table_offset + child_dir_offset;
+            if (MatchName(current_child_dir + sizeof(dir) - sizeof(u32), dir_name)) {
+                current_dir = current_child_dir;
+                break;
+            }
+            std::memcpy(&dir, current_child_dir, sizeof(dir));
+            child_dir_offset = dir.next_dir_offset;
+        }
+        std::memcpy(&dir, current_dir, sizeof(dir));
+    }
+
+    struct {
+        u32_le parent_dir_offset;
+        u32_le next_file_offset;
+        u64_le data_offset;
+        u64_le data_length;
+        u32_le same_hash_next_file_offset;
+        u32_le name_length;
+        // followed by file name
+    } file;
+    static_assert(sizeof(file) == 0x20, "file has incorrect size");
+
+    // Find the file
+    u32 file_offset = dir.first_file_offset;
+    while (file_offset != INVALID_FIELD) {
+        const u8* current_file = romfs + header.file_table_offset + file_offset;
+        std::memcpy(&file, current_file, sizeof(file));
+        if (MatchName(current_file + sizeof(file) - sizeof(u32), file_name)) {
+            return romfs + header.data_offset + file.data_offset;
+        }
+        file_offset = file.next_file_offset;
+    }
+    return nullptr;
+}
+
+static u32 DecompressLZ11(const u8* in, u8* out) {
+    u32_le decompressed_size;
+    memcpy(&decompressed_size, in, sizeof(u32));
+    in += 4;
+
+    u8 type = decompressed_size & 0xFF;
+    ASSERT(type == 0x11);
+    decompressed_size >>= 8;
+
+    u32 current_out_size = 0;
+    u8 flags = 0, mask = 1;
+    while (current_out_size < decompressed_size) {
+        if (mask == 1) {
+            flags = *(in++);
+            mask = 0x80;
+        } else {
+            mask >>= 1;
+        }
+
+        if (flags & mask) {
+            u8 byte1 = *(in++);
+            u32 length = byte1 >> 4;
+            u32 offset;
+            if (length == 0) {
+                u8 byte2 = *(in++);
+                u8 byte3 = *(in++);
+                length = (((byte1 & 0x0F) << 4) | (byte2 >> 4)) + 0x11;
+                offset = (((byte2 & 0x0F) << 8) | byte3) + 0x1;
+            } else if (length == 1) {
+                u8 byte2 = *(in++);
+                u8 byte3 = *(in++);
+                u8 byte4 = *(in++);
+                length = (((byte1 & 0x0F) << 12) | (byte2 << 4) | (byte3 >> 4)) + 0x111;
+                offset = (((byte3 & 0x0F) << 8) | byte4) + 0x1;
+            } else {
+                u8 byte2 = *(in++);
+                length = (byte1 >> 4) + 0x1;
+                offset = (((byte1 & 0x0F) << 8) | byte2) + 0x1;
+            }
+
+            for (u32 i = 0; i < length; i++) {
+                *out = *(out - offset);
+                ++out;
+            }
+
+            current_out_size += length;
+        } else {
+            *(out++) = *(in++);
+            current_out_size++;
+        }
+    }
+    return decompressed_size;
+}
+
+static bool LoadSharedFont() {
+    // TODO (wwylele): load different font archive for region CHN/KOR/TWN
+    const u64_le shared_font_archive_id_low = 0x0004009b00014002;
+    const u64_le shared_font_archive_id_high = 0x00000001ffffff00;
+    std::vector<u8> shared_font_archive_id(16);
+    std::memcpy(&shared_font_archive_id[0], &shared_font_archive_id_low, sizeof(u64));
+    std::memcpy(&shared_font_archive_id[8], &shared_font_archive_id_high, sizeof(u64));
+    FileSys::Path archive_path(shared_font_archive_id);
+    auto archive_result = Service::FS::OpenArchive(Service::FS::ArchiveIdCode::NCCH, archive_path);
+    if (archive_result.Failed())
+        return false;
+
+    std::vector<u8> romfs_path(20, 0); // 20-byte all zero path for opening RomFS
+    FileSys::Path file_path(romfs_path);
+    FileSys::Mode open_mode = {};
+    open_mode.read_flag.Assign(1);
+    auto file_result = Service::FS::OpenFileFromArchive(*archive_result, file_path, open_mode);
+    if (file_result.Failed())
+        return false;
+
+    auto romfs = std::move(file_result).Unwrap();
+    std::vector<u8> romfs_buffer(romfs->backend->GetSize());
+    romfs->backend->Read(0, romfs_buffer.size(), romfs_buffer.data());
+    romfs->backend->Close();
+
+    const u8* font_file = GetRomFSFile(romfs_buffer.data(), {u"cbf_std.bcfnt.lz"});
+    if (font_file == nullptr)
+        return false;
+
+    struct {
+        u32_le status;
+        u32_le region;
+        u32_le decompressed_size;
+        INSERT_PADDING_WORDS(0x1D);
+    } shared_font_header{};
+    static_assert(sizeof(shared_font_header) == 0x80, "shared_font_header has incorrect size");
+
+    shared_font_header.status = 2; // successfully loaded
+    shared_font_header.region = 1; // region JPN/EUR/USA
+    shared_font_header.decompressed_size =
+        DecompressLZ11(font_file, shared_font_mem->GetPointer(0x80));
+    std::memcpy(shared_font_mem->GetPointer(), &shared_font_header, sizeof(shared_font_header));
+    *shared_font_mem->GetPointer(0x83) = 'U'; // Change the magic from "CFNT" to "CFNU"
+
+    return true;
+}
+
+static bool LoadLegacySharedFont() {
+    // This is the legacy method to load shared font.
+    // The expected format is a decrypted, uncompressed BCFNT file with the 0x80 byte header
+    // generated by the APT:U service. The best way to get is by dumping it from RAM. We've provided
+    // a homebrew app to do this: https://github.com/citra-emu/3dsutils. Put the resulting file
+    // "shared_font.bin" in the Citra "sysdata" directory.
+    std::string filepath = FileUtil::GetUserPath(D_SYSDATA_IDX) + SHARED_FONT;
+
+    FileUtil::CreateFullPath(filepath); // Create path if not already created
+    FileUtil::IOFile file(filepath, "rb");
+    if (file.IsOpen()) {
+        file.ReadBytes(shared_font_mem->GetPointer(), file.GetSize());
+        return true;
+    }
+
+    return false;
+}
+
 void Init() {
     AddService(new APT_A_Interface);
     AddService(new APT_S_Interface);
@@ -651,29 +861,20 @@ void Init() {
 
     HLE::Applets::Init();
 
-    // Load the shared system font (if available).
-    // The expected format is a decrypted, uncompressed BCFNT file with the 0x80 byte header
-    // generated by the APT:U service. The best way to get is by dumping it from RAM. We've provided
-    // a homebrew app to do this: https://github.com/citra-emu/3dsutils. Put the resulting file
-    // "shared_font.bin" in the Citra "sysdata" directory.
+    using Kernel::MemoryPermission;
+    shared_font_mem =
+        Kernel::SharedMemory::Create(nullptr, 0x332000, // 3272 KB
+                                     MemoryPermission::ReadWrite, MemoryPermission::Read, 0,
+                                     Kernel::MemoryRegion::SYSTEM, "APT:SharedFont");
 
-    std::string filepath = FileUtil::GetUserPath(D_SYSDATA_IDX) + SHARED_FONT;
-
-    FileUtil::CreateFullPath(filepath); // Create path if not already created
-    FileUtil::IOFile file(filepath, "rb");
-
-    if (file.IsOpen()) {
-        // Create shared font memory object
-        using Kernel::MemoryPermission;
-        shared_font_mem =
-            Kernel::SharedMemory::Create(nullptr, 0x332000, // 3272 KB
-                                         MemoryPermission::ReadWrite, MemoryPermission::Read, 0,
-                                         Kernel::MemoryRegion::SYSTEM, "APT:SharedFont");
-        // Read shared font data
-        file.ReadBytes(shared_font_mem->GetPointer(), file.GetSize());
+    if (LoadSharedFont()) {
+        shared_font_loaded = true;
+    } else if (LoadLegacySharedFont()) {
+        LOG_WARNING(Service_APT, "Loaded shared font by legacy method");
+        shared_font_loaded = true;
     } else {
-        LOG_WARNING(Service_APT, "Unable to load shared font: %s", filepath.c_str());
-        shared_font_mem = nullptr;
+        LOG_WARNING(Service_APT, "Unable to load shared font");
+        shared_font_loaded = false;
     }
 
     lock = Kernel::Mutex::Create(false, "APT_U:Lock");
@@ -693,6 +894,7 @@ void Init() {
 
 void Shutdown() {
     shared_font_mem = nullptr;
+    shared_font_loaded = false;
     shared_font_relocated = false;
     lock = nullptr;
     notification_event = nullptr;
