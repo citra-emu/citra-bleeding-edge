@@ -32,7 +32,7 @@ install:
           # workaround for cyclical dependancies
           #C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syu" 2> $null
           C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-freetype mingw64/mingw-w64-x86_64-fontconfig" 2> $null
-          C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-cmake mingw64/mingw-w64-x86_64-qt5 mingw64/mingw-w64-x86_64-SDL2" 2> $null
+          C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw64/mingw-w64-x86_64-cmake mingw64/mingw-w64-x86_64-qt5 mingw64/mingw-w64-x86_64-curl mingw64/mingw-w64-x86_64-SDL2" 2> $null
         }
 
 before_build:
@@ -46,7 +46,7 @@ before_build:
           # Change path to just include the mingw gcc and *not* sh.exe (which breaks things when using MinGW Makefiles)
           $env:Path = "C:\msys64\mingw64\bin\;"
           # make sure error output from this command isn't interpreted as an error in powershell
-          C:\Windows\System32\cmd /c 'C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll -DWIN_CREATE_INSTALLER=1 .. 2>&1'
+          C:\Windows\System32\cmd /c 'C:\msys64\mingw64\bin\cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=C:/msys64/mingw64/qt5/lib/cmake/Qt5/ -DSDL2_INCLUDE_DIR=C:/msys64/mingw64/include/SDL2/ -DSDL2_LIBRARY=C:/msys64/mingw64/bin/SDL2.dll -DWIN_CREATE_INSTALLER=1 -DUSE_SYSTEM_CURL=1 .. 2>&1'
           $env:Path = $old_path
         }
   - cd ..
