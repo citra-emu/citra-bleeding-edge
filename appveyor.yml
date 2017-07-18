@@ -78,16 +78,19 @@ after_build:
           $MSVC_RUNTIME_INSTALLER = "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/1033/vcredist_x64.exe"
 
           # download nuget cmdline if it doesn't exist
+          # instead of downloading it, copy it from dist
           if (!(Test-Path -Path "$CMAKE_BINARY_DIR/nuget")) {
               New-Item -ItemType Directory -Force -Path "$CMAKE_BINARY_DIR/nuget" | Out-Null
-              (New-Object Net.WebClient).DownloadFile("https://dist.nuget.org/win-x86-commandline/v3.4.4/NuGet.exe",
-                  "$CMAKE_BINARY_DIR/nuget/nuget.exe")
+              #(New-Object Net.WebClient).DownloadFile("https://dist.nuget.org/win-x86-commandline/v3.4.4/NuGet.exe",
+              #    "$CMAKE_BINARY_DIR/nuget/nuget.exe")
+              Copy-Item -path "$CMAKE_SOURCE_DIR/dist/nuget.exe" -destination "$CMAKE_BINARY_DIR/nuget"
           }
           # download squirrel if it doesn't exist
           if (!(Test-Path -Path "$CMAKE_BINARY_DIR/squirrel")) {
               New-Item -ItemType Directory -Force -Path "$CMAKE_BINARY_DIR/squirrel" | Out-Null
-              (New-Object Net.WebClient).DownloadFile("https://github.com/Squirrel/Squirrel.Windows/releases/download/1.4.4/Squirrel.Windows-1.4.4.zip",
-                  "$CMAKE_BINARY_DIR/squirrel/squirrel.zip")
+              # (New-Object Net.WebClient).DownloadFile("https://github.com/Squirrel/Squirrel.Windows/releases/download/1.4.4/Squirrel.Windows-1.4.4.zip",
+              #     "$CMAKE_BINARY_DIR/squirrel/squirrel.zip")
+              Copy-Item -path "$CMAKE_SOURCE_DIR/dist/squirrel.zip" -destination "$CMAKE_BINARY_DIR/squirrel"
               7z e "$CMAKE_BINARY_DIR/squirrel/squirrel.zip" -o"$CMAKE_BINARY_DIR/squirrel" -r -y | Out-Null
           }
 
