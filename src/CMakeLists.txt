@@ -14,6 +14,11 @@ endif()
 if (ENABLE_QT)
     add_subdirectory(citra_qt)
 endif()
+
 if (ENABLE_WEB_SERVICE)
     add_subdirectory(web_service)
+endif()
+
+if (ENABLE_QT AND WIN_CREATE_INSTALLER)
+    add_subdirectory(updater)
 endif()
