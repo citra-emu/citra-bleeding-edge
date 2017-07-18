@@ -110,7 +110,7 @@ after_build:
           # First copy the citra exe files and all the dlls to the new release folder
           Get-ChildItem "$CMAKE_BINARY_DIR" -Recurse -Filter "citra*.exe" | Copy-Item -destination $SQUIRREL_BIN_DIR
           Get-ChildItem "$CMAKE_BINARY_DIR" -Recurse -Filter "updater.exe" | Copy-Item -destination $SQUIRREL_BIN_DIR
-          $MingwDLLs = "Qt5Core.dll","Qt5Widgets.dll","Qt5Gui.dll","Qt5OpenGL.dll","libbz2-1.dll","libicudt56.dll","libicuin56.dll","libicuuc56.dll","libffi-6.dll","libfreetype-6.dll","libgcc_s_seh-1.dll","libglib-2.0-0.dll","libgobject-2.0-0.dll","libgraphite2.dll","libiconv-2.dll","libharfbuzz-0.dll","libintl-8.dll","libpcre-1.dll","libpcre16-0.dll","libpng16-16.dll","libstdc++-6.dll","libwinpthread-1.dll","SDL2.dll","zlib1.dll"
+          $MingwDLLs = "Qt5Core.dll","Qt5Widgets.dll","Qt5Gui.dll","Qt5OpenGL.dll","libbz2-1.dll","libicudt57.dll","libicuin57.dll","libicuuc57.dll","libffi-6.dll","libfreetype-6.dll","libgcc_s_seh-1.dll","libglib-2.0-0.dll","libgobject-2.0-0.dll","libgraphite2.dll","libiconv-2.dll","libharfbuzz-0.dll","libintl-8.dll","libpcre-1.dll","libpcre16-0.dll","libpng16-16.dll","libstdc++-6.dll","libwinpthread-1.dll","SDL2.dll","zlib1.dll","libcurl-4.dll"
           foreach ($file in $MingwDLLs) {
             Copy-Item -path "C:/msys64/mingw64/bin/$file" -force -destination "$SQUIRREL_BIN_DIR"
           }
