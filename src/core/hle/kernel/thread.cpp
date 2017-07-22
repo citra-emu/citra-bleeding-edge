@@ -188,8 +188,8 @@ static void SwitchContext(Thread* new_thread) {
         }
     } else {
         current_thread = nullptr;
-        Kernel::g_current_process = nullptr;
-        Memory::current_page_table = nullptr;
+        // Note: We do not reset the current process and current page table when idling because
+        // technically we haven't changed processes, our threads are just paused.
     }
 }
 
