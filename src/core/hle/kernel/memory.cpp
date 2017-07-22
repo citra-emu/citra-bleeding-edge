@@ -144,10 +144,9 @@ void HandleSpecialMapping(VMManager& address_space, const AddressMapping& mappin
     // TODO(yuriks): This flag seems to have some other effect, but it's unknown what
     MemoryState memory_state = mapping.unk_flag ? MemoryState::Static : MemoryState::IO;
 
-    auto vma = address_space
-                   .MapBackingMemory(mapping.address, target_pointer,
-                                     mapping.size, memory_state)
-                   .Unwrap();
+    auto vma =
+        address_space.MapBackingMemory(mapping.address, target_pointer, mapping.size, memory_state)
+        .Unwrap();
     address_space.Reprotect(vma,
                             mapping.read_only ? VMAPermission::Read : VMAPermission::ReadWrite);
 }

@@ -335,7 +335,8 @@ void VMManager::UpdatePageTableForVMA(const VirtualMemoryArea& vma) {
         Memory::UnmapRegion(page_table, vma.base, vma.size);
         break;
     case VMAType::AllocatedMemoryBlock:
-        Memory::MapMemoryRegion(page_table, vma.base, vma.size, vma.backing_block->data() + vma.offset);
+        Memory::MapMemoryRegion(page_table, vma.base, vma.size,
+                                vma.backing_block->data() + vma.offset);
         break;
     case VMAType::BackingMemory:
         Memory::MapMemoryRegion(page_table, vma.base, vma.size, vma.backing_memory);
