@@ -146,7 +146,7 @@ void HandleSpecialMapping(VMManager& address_space, const AddressMapping& mappin
 
     auto vma =
         address_space.MapBackingMemory(mapping.address, target_pointer, mapping.size, memory_state)
-        .Unwrap();
+            .Unwrap();
     address_space.Reprotect(vma,
                             mapping.read_only ? VMAPermission::Read : VMAPermission::ReadWrite);
 }
