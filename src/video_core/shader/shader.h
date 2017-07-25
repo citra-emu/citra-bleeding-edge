@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstddef>
+#include <functional>
 #include <type_traits>
 #include <nihstro/shader_bytecode.h>
 #include "common/assert.h"
@@ -30,6 +31,12 @@ constexpr unsigned MAX_SWIZZLE_DATA_LENGTH = 4096;
 struct AttributeBuffer {
     alignas(16) Math::Vec4<float24> attr[16];
 };
+
+/// Handler type for receiving vertex outputs from vertex shader or geometry shader
+using VertexHandler = std::function<void(const AttributeBuffer&)>;
+
+/// Handler type for signaling to invert the vertex order of the next triangle
+using WindingSetter = std::function<void()>;
 
 struct OutputVertex {
     Math::Vec4<float24> pos;
@@ -59,6 +66,21 @@ ASSERT_POS(tc2, RasterizerRegs::VSOutputAttributes::TEXCOORD2_U);
 #undef ASSERT_POS
 static_assert(std::is_pod<OutputVertex>::value, "Structure is not POD");
 static_assert(sizeof(OutputVertex) == 24 * sizeof(float), "OutputVertex has invalid size");
+
+/**
+ * This structure contains state information for primitive emitting in geometry shader.
+ */
+struct GSEmitter {
+    std::array<std::array<Math::Vec4<float24>, 16>, 3> buffer;
+    size_t vertex_id;
+    bool prim_emit;
+    bool winding;
+    VertexHandler vertex_handler;
+    WindingSetter winding_setter;
+    u32 output_mask;
+
+    void Emit(Math::Vec4<float24> (&vertex)[16]);
+};
 
 /**
  * This structure contains the state information that needs to be unique for a shader unit. The 3DS
@@ -123,6 +145,21 @@ struct UnitState {
     void LoadInput(const ShaderRegs& config, const AttributeBuffer& input);
 
     void WriteOutput(const ShaderRegs& config, AttributeBuffer& output);
+
+    /// Returns the primitve emitter for geometry shader. Returns nullptr for vertex shader
+    virtual GSEmitter* GetEmitter();
+};
+
+/**
+ * This is an extended shader unit state that represents the special unit that can run both vertex
+ * shader and geometry shader. It contains an additional primitive emitter and utilities for
+ * geometry shader.
+ */
+struct GSUnitState : public UnitState {
+    GSEmitter emitter;
+    GSEmitter* GetEmitter() override;
+    void SetVertexHandler(VertexHandler vertex_handler, WindingSetter winding_setter);
+    void ConfigOutput(const ShaderRegs& config);
 };
 
 struct ShaderSetup {
