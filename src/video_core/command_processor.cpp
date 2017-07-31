@@ -119,24 +119,22 @@ static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
     }
 }
 
-static void WriteProgramCode(ShaderRegs& config, Shader::ShaderSetup& setup,
+static void WriteProgramCode(const ShaderRegs& config, Shader::ShaderSetup& setup,
                              unsigned max_program_code_length, u32 value) {
     if (config.program.offset >= max_program_code_length) {
         LOG_ERROR(HW_GPU, "Invalid %s program offset %d", GetShaderSetupTypeName(setup),
                   (int)config.program.offset);
     } else {
         setup.program_code[config.program.offset] = value;
-        config.program.offset++;
     }
 }
 
-static void WriteSwizzlePatterns(ShaderRegs& config, Shader::ShaderSetup& setup, u32 value) {
+static void WriteSwizzlePatterns(const ShaderRegs& config, Shader::ShaderSetup& setup, u32 value) {
     if (config.swizzle_patterns.offset >= setup.swizzle_data.size()) {
         LOG_ERROR(HW_GPU, "Invalid %s swizzle pattern offset %d", GetShaderSetupTypeName(setup),
                   (int)config.swizzle_patterns.offset);
     } else {
         setup.swizzle_data[config.swizzle_patterns.offset] = value;
-        config.swizzle_patterns.offset++;
     }
 }
 
@@ -459,6 +457,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(gs.program.set_word[6], 0x2a2):
     case PICA_REG_INDEX_WORKAROUND(gs.program.set_word[7], 0x2a3): {
         WriteProgramCode(g_state.regs.gs, g_state.gs, 4096, value);
+        g_state.regs.gs.program.offset++;
         break;
     }
 
@@ -471,6 +470,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(gs.swizzle_patterns.set_word[6], 0x2ac):
     case PICA_REG_INDEX_WORKAROUND(gs.swizzle_patterns.set_word[7], 0x2ad): {
         WriteSwizzlePatterns(g_state.regs.gs, g_state.gs, value);
+        g_state.regs.gs.swizzle_patterns.offset++;
         break;
     }
 
@@ -511,6 +511,10 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(vs.program.set_word[6], 0x2d2):
     case PICA_REG_INDEX_WORKAROUND(vs.program.set_word[7], 0x2d3): {
         WriteProgramCode(g_state.regs.vs, g_state.vs, 512, value);
+        if (!g_state.regs.pipeline.gs_unit_exclusive_configuration) {
+            WriteProgramCode(g_state.regs.vs, g_state.gs, 4096, value);
+        }
+        g_state.regs.vs.program.offset++;
         break;
     }
 
@@ -523,6 +527,10 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(vs.swizzle_patterns.set_word[6], 0x2dc):
     case PICA_REG_INDEX_WORKAROUND(vs.swizzle_patterns.set_word[7], 0x2dd): {
         WriteSwizzlePatterns(g_state.regs.vs, g_state.vs, value);
+        if (!g_state.regs.pipeline.gs_unit_exclusive_configuration) {
+            WriteSwizzlePatterns(g_state.regs.vs, g_state.gs, value);
+        }
+        g_state.regs.vs.swizzle_patterns.offset++;
         break;
     }
 
