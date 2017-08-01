@@ -4,7 +4,9 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <codecvt>
 #include <cstring>
+#include <locale>
 #include <memory>
 #include "common/logging/log.h"
 #include "common/string_util.h"
@@ -418,6 +420,20 @@ ResultStatus AppLoader_NCCH::ReadRomFS(std::shared_ptr<FileUtil::IOFile>& romfs_
     }
     LOG_DEBUG(Loader, "NCCH has no RomFS");
     return ResultStatus::ErrorNotUsed;
+}
+
+ResultStatus AppLoader_NCCH::ReadTitle(std::string& title) {
+    std::vector<u8> icon_data;
+    Loader::SMDH smdh;
+    ReadIcon(icon_data);
+    memcpy(&smdh, icon_data.data(), sizeof(Loader::SMDH));
+    const auto& short_title{smdh.GetShortTitle(Loader::SMDH::TitleLanguage::English)};
+
+    using convert_type = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<convert_type, wchar_t> converter;
+    title = converter.to_bytes(reinterpret_cast<const wchar_t*>(short_title.data()));
+
+    return ResultStatus::Success;
 }
 
 } // namespace Loader
