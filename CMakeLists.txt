@@ -295,11 +295,17 @@ function(create_directory_groups)
     endforeach()
 endfunction()
 
-# generate git revision information
+function(get_build_time _var)
+    string(TIMESTAMP timestamp UTC)
+    set(${_var} "${timestamp}" PARENT_SCOPE)
+endfunction()
+
+# generate git/build information
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REF_SPEC GIT_REV)
 git_describe(GIT_DESC --always --long --dirty)
 git_branch_name(GIT_BRANCH)
+get_build_time(BUILD_DATE)
 
 enable_testing()
 add_subdirectory(externals)
