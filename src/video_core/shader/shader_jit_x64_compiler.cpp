@@ -75,8 +75,8 @@ const JitFunction instr_table[64] = {
     &JitShader::Compile_IF,    // ifu
     &JitShader::Compile_IF,    // ifc
     &JitShader::Compile_LOOP,  // loop
-    nullptr,                   // emit
-    nullptr,                   // sete
+    &JitShader::Compile_EMIT,  // emit
+    &JitShader::Compile_SETE,  // sete
     &JitShader::Compile_JMP,   // jmpc
     &JitShader::Compile_JMP,   // jmpu
     &JitShader::Compile_CMP,   // cmp
@@ -770,6 +770,37 @@ void JitShader::Compile_JMP(Instruction instr) {
     } else {
         jnz(b, T_NEAR);
     }
+}
+
+static void Emit(UnitState* state) {
+    GSEmitter* emitter = state->GetEmitter();
+    ASSERT_MSG(emitter, "Execute EMIT on VS");
+    emitter->Emit(state->registers.output);
+}
+
+static void SetEmit(UnitState* state, size_t vertex_id, bool prim_emit, bool winding) {
+    GSEmitter* emitter = state->GetEmitter();
+    ASSERT_MSG(emitter, "Execute SETEMIT on VS");
+    emitter->vertex_id = vertex_id;
+    emitter->prim_emit = prim_emit;
+    emitter->winding = winding;
+}
+
+void JitShader::Compile_EMIT(Instruction instr) {
+    ABI_PushRegistersAndAdjustStack(*this, PersistentCallerSavedRegs(), 0);
+    mov(ABI_PARAM1, STATE);
+    CallFarFunction(*this, Emit);
+    ABI_PopRegistersAndAdjustStack(*this, PersistentCallerSavedRegs(), 0);
+}
+
+void JitShader::Compile_SETE(Instruction instr) {
+    ABI_PushRegistersAndAdjustStack(*this, PersistentCallerSavedRegs(), 0);
+    mov(ABI_PARAM1, STATE);
+    mov(ABI_PARAM2, static_cast<size_t>(instr.setemit.vertex_id));
+    mov(ABI_PARAM3, static_cast<size_t>(instr.setemit.prim_emit != 0));
+    mov(ABI_PARAM4, static_cast<size_t>(instr.setemit.winding != 0));
+    CallFarFunction(*this, SetEmit);
+    ABI_PopRegistersAndAdjustStack(*this, PersistentCallerSavedRegs(), 0);
 }
 
 void JitShader::Compile_Block(unsigned end) {
