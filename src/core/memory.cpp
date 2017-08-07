@@ -208,23 +208,7 @@ bool IsValidVirtualAddress(const VAddr vaddr) {
 }
 
 bool IsValidPhysicalAddress(const PAddr paddr) {
-    struct PhysicalRegion {
-        PAddr start;
-        PAddr end;
-    };
-
-    static constexpr PhysicalRegion physical_regions[] = {
-        {VRAM_PADDR, VRAM_PADDR_END},
-        {FCRAM_PADDR, FCRAM_N3DS_PADDR_END},
-        {DSP_RAM_PADDR, DSP_RAM_PADDR_END},
-        {IO_AREA_PADDR, IO_AREA_PADDR_END},
-        {N3DS_EXTRA_RAM_PADDR, N3DS_EXTRA_RAM_PADDR_END}};
-
-    for (const auto& region : physical_regions)
-        if (paddr >= region.start && paddr < region.end)
-            return true;
-
-    return false;
+    return GetPhysicalPointer(paddr) != nullptr;
 }
 
 u8* GetPointer(const VAddr vaddr) {
