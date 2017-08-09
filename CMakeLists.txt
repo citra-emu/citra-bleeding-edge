@@ -13,6 +13,8 @@ option(CITRA_USE_BUNDLED_QT "Download bundled Qt binaries" OFF)
 
 option(ENABLE_WEB_SERVICE "Enable web services (telemetry, etc.)" ON)
 
+option(WIN_CREATE_INSTALLER "Create a windows installer with Squirrel" OFF)
+
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/.git/hooks/pre-commit)
     message(STATUS "Copying pre-commit hook")
     file(COPY hooks/pre-commit
@@ -83,10 +85,11 @@ if (NOT MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
     if (MINGW)
-        add_definitions(-DMINGW_HAS_SECURE_API)
-
+        add_definitions(-DMINGW_HAS_SECURE_API=1)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse -msse2")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse2")
         if (MINGW_STATIC_BUILD)
-            add_definitions(-DQT_STATICPLUGIN)
+            add_definitions(-DQT_STATICPLUGIN=1)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
         endif()
@@ -126,7 +129,8 @@ else()
     # /O2 - Optimization level 2
     # /GS- - No stack buffer overflow checks
     # /MD - Multi-threaded runtime DLL
-    set(CMAKE_C_FLAGS_RELEASE   "/O2 /GS- /MD" CACHE STRING "" FORCE)
+    # /Zo - enahnced debug info for optimized builds
+    set(CMAKE_C_FLAGS_RELEASE   "/Zo /O2 /GS- /MD" CACHE STRING "" FORCE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "" FORCE)
 
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG" CACHE STRING "" FORCE)
@@ -308,7 +312,7 @@ git_describe(GIT_DESC --always --long --dirty)
 git_branch_name(GIT_BRANCH)
 get_timestamp(BUILD_DATE)
 
-enable_testing()
+#enable_testing()
 add_subdirectory(externals)
 add_subdirectory(src)
 
