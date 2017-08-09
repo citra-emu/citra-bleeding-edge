@@ -4,6 +4,7 @@
 
 #include "common/math_util.h"
 #include "common/quaternion.h"
+#include "common/thread.h"
 #include "input_common/motion_emu.h"
 
 namespace InputCommon {
