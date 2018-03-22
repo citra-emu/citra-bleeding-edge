@@ -72,6 +72,19 @@ GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr) {
     game_list->PopulateAsync(UISettings::values.gamedir, UISettings::values.gamedir_deepscan);
 
     UpdateUITheme();
+    
+    QMessageBox::critical(
+        this, tr("Bleeding Edge - Discontinuation Notice"),
+        tr("<b>Bleeding Edge has been discontinued. You will no longer receive support or updates "
+           "using this version.</b><br></br><br></br>"
+           "To continue to receive experimental updates, please use our Canary "
+           "releases.<br></br><br></br>"
+           "To download Canary, use our installer:<br></br> "
+           "<a href='https://citra-emu.org/download/'>Citra Download Page</a><br></br><br></br>"
+           "Instructions for removing bleeding edge can be found here:<br></br>"
+           "href='https://community.citra-emu.org/t/"
+           "bleeding-edge-is-discontinued-uninstall-instructions/'>Instructions on how to remove "
+           "Citra Bleeding Edge from your workstation</a>"));
 
     QStringList args = QApplication::arguments();
     if (args.length() >= 2) {
